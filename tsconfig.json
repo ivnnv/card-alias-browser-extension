@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "types": ["chrome", "node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": ["src", "test", "wxt.config.ts", ".wxt/wxt.d.ts"],
+  "extends": "./.wxt/tsconfig.json"
+}

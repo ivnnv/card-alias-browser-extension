@@ -1,0 +1,30 @@
+button {
+  all: unset;
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font:
+    700 9px/1 -apple-system,
+    system-ui,
+    sans-serif;
+  color: #fff;
+  background: var(--ca-new);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.15);
+}
+
+button.known {
+  background: var(--ca-known);
+  font:
+    italic 700 9px/1 Georgia,
+    serif;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--ca-known);
+  outline-offset: 1px;
+}

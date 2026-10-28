@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { colorsFrom, DEFAULT_COLORS, importable, rulesFrom } from '../src/shared/store.ts';
+
+test('imports well-formed cards, site rules and colors', () => {
+  const data = {
+    'card:visa:2071': { brand: 'visa', last4: '2071', alias: 'Revolut', updatedAt: 1 },
+    'site:shop.example': [{ brand: 'card', last4: '8123' }],
+    settings: { colors: { newColor: '#d97706', knownColor: '#3b82f6' } },
+  };
+  assert.deepEqual(importable(data), data);
+});
+
+test('drops malformed entries and keeps the rest', () => {
+  const data = {
+    'card:visa:2071': { brand: 'visa', last4: '2071', alias: 'Revolut' },
+    'card:bogus:2071': { brand: 'bogus', last4: '2071', alias: 'x' },
+    'card:visa:9999': { brand: 'visa', last4: '2071', alias: 'key and digits disagree' },
+    'card:visa:1234': { brand: 'visa', last4: '1234', alias: '   ' },
+    'site:a.example': [null],
+    'site:b.example': [{ brand: 'visa', last4: 'abcd' }],
+    settings: { colors: { newColor: 42, knownColor: '#3b82f6' } },
+    other: 'ignored',
+  };
+  assert.deepEqual(Object.keys(importable(data)), ['card:visa:2071']);
+});
+
+test('rejects inherited object keys as brands', () => {
+  assert.deepEqual(importable({ 'card:constructor:2071': { brand: 'constructor', last4: '2071', alias: 'x' } }), {});
+});
+
+test('rejects files that are not objects', () => {
+  assert.deepEqual(importable(null), {});
+  assert.deepEqual(importable([1, 2]), {});
+});
+
+test('bad stored colors fall back to the defaults', () => {
+  assert.deepEqual(colorsFrom({ settings: { colors: { newColor: 'red', knownColor: '#3b82f6' } } }), DEFAULT_COLORS);
+});
+
+test('bad stored site rules are skipped', () => {
+  assert.deepEqual(rulesFrom({ 'site:x': [null, { brand: 'visa', last4: '2071' }] }, 'x'), [
+    { brand: 'visa', last4: '2071' },
+  ]);
+});

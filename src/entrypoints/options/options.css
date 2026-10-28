@@ -5,7 +5,7 @@
   --text: #111;
   --muted: #666;
   --border: #ddd;
-  --accent: #10b981;
+  --accent: #3b82f6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,7 +22,10 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.5 -apple-system, system-ui, sans-serif;
+  font:
+    14px/1.5 -apple-system,
+    system-ui,
+    sans-serif;
 }
 
 main {
@@ -90,9 +93,36 @@ button,
   cursor: pointer;
 }
 
+.colors {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.colors label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+input[type='color'] {
+  width: 36px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
 .actions {
   display: flex;
   gap: 8px;
   align-items: center;
   margin-top: 28px;
+}
+
+.grow {
+  flex: 1;
 }
