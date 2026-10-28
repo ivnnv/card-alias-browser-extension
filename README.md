@@ -11,6 +11,7 @@
 <p align="center">
   <a href="#install"><img alt="Chrome Web Store: coming soon" src="https://img.shields.io/badge/Chrome%20Web%20Store-coming%20soon-lightgrey?logo=googlechrome&logoColor=white" /></a>
   <a href="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/ivnnv/card-alias-browser-extension"><img alt="OpenSSF Scorecard" src="https://api.securityscorecards.dev/projects/github.com/ivnnv/card-alias-browser-extension/badge" /></a>
   <a href="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/codeql.yml/badge.svg" /></a>
   <img alt="Manifest V3" src="https://img.shields.io/badge/manifest-v3-3b82f6" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white" />
@@ -55,6 +56,19 @@ Every release zip is built by CI from a tagged commit, with a SHA-256 checksum a
 ```sh
 gh attestation verify card-alias-browser-extension-<version>-chrome.zip --repo ivnnv/card-alias-browser-extension
 ```
+
+### Why the Scorecard isn't 10
+
+The [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/ivnnv/card-alias-browser-extension) rates how a repository is run, not the code itself. Every check scores 10 except these, and here is why:
+
+- **Code-Review:** I maintain this alone. Every change still goes through a pull request with CI, CodeQL and the hostile-page test, but Scorecard only counts approvals from a second human.
+- **Branch-Protection:** `master` requires a pull request and passing CI, and blocks force pushes and deletion. It doesn't require a human approval, for the same reason.
+- **Contributors:** one maintainer, no organization behind it.
+- **Maintained:** Scorecard gives new repositories 0 until they are 90 days old.
+- **CI-Tests and SAST:** the first pull requests merged while the repository was private, before Actions and CodeQL ran on it. Every pull request since is checked by both.
+- **Vulnerabilities:** one low-severity advisory in `deepmerge`, pulled in by `web-ext`, a development tool that never ships in the extension. No patched version exists yet.
+- **Fuzzing:** no fuzzing. Detection is covered by unit tests, and isolation by the end-to-end hostile-page test.
+- **CII-Best-Practices:** not applied for yet.
 
 ## Install
 
