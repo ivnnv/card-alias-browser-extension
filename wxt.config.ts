@@ -14,7 +14,7 @@ export default defineConfig({
     action: { default_title: 'Card Alias: manage aliases', default_icon: { 16: icons[16], 32: icons[32] } },
   },
   webExt: {
-    // `pnpm dev` opens a fresh Chrome profile on the test page (served by `pnpm fixture`).
+    // `bun dev` opens a fresh Chrome profile on the test page (served by `bun fixture`).
     startUrls: ['http://127.0.0.1:8765/test/fixture.html'],
   },
 });

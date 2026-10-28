@@ -43,43 +43,43 @@ Card Alias stores only the card brand, the last four digits and the alias you ty
 **From source:**
 
 ```sh
-pnpm install
-pnpm build
+bun install
+bun run build
 ```
 
 Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick `.output/chrome-mv3`.
 
 ## Development
 
-You need Node 24+ and pnpm.
+You need [Bun](https://bun.sh) 1.4+. `bun dev` also uses Node 24+ to launch Chrome.
 
 ```sh
-pnpm install
-pnpm dev
+bun install
+bun dev
 ```
 
-`pnpm dev` opens a separate Chrome profile with the extension loaded and reloads it on every change.
+`bun dev` opens a separate Chrome profile with the extension loaded and reloads it on every change.
 
 It starts on the test page, which has realistic checkout layouts plus decoys that must not be marked. Serve it in another terminal:
 
 ```sh
-pnpm fixture
+bun fixture
 ```
 
 The page lives at http://127.0.0.1:8765/test/fixture.html. It shows whether the extension is running and has a light/dark switch.
 
 ### Scripts
 
-| Script                      | What it does                                             |
-| --------------------------- | -------------------------------------------------------- |
-| `pnpm dev`                  | Opens Chrome with the extension and reloads it on change |
-| `pnpm build`                | Production build into `.output/chrome-mv3`               |
-| `pnpm zip`                  | Zip for the Chrome Web Store                             |
-| `pnpm check`                | Typecheck, lint, format check, tests and build           |
-| `pnpm test`                 | Detection tests (`node --test`, no build step)           |
-| `pnpm typecheck`            | Type checking with `tsrs`                                |
-| `pnpm lint` / `pnpm format` | `oxlint` / `oxfmt`                                       |
-| `pnpm fixture`              | Serves the test page on port 8765                        |
+| Script                    | What it does                                             |
+| ------------------------- | -------------------------------------------------------- |
+| `bun dev`                 | Opens Chrome with the extension and reloads it on change |
+| `bun run build`           | Production build into `.output/chrome-mv3`               |
+| `bun zip`                 | Zip for the Chrome Web Store                             |
+| `bun check`               | Typecheck, lint, format check, tests and build           |
+| `bun test`                | Unit tests, no build step                                |
+| `bun typecheck`           | Type checking with `tsrs`                                |
+| `bun lint` / `bun format` | `oxlint` / `oxfmt`                                       |
+| `bun fixture`             | Serves the test page on port 8765                        |
 
 ### Stack
 
@@ -107,7 +107,7 @@ wxt.config.ts      manifest; the version comes from package.json
 
 Issues and pull requests are welcome. A pattern your bank or checkout uses that isn't detected is the most useful thing to report: include the exact text around the number.
 
-Run `pnpm check` before opening a pull request.
+Run `bun check` before opening a pull request.
 
 ## License
 

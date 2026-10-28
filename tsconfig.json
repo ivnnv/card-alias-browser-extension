@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["chrome", "node"],
+    "types": ["chrome", "bun"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
