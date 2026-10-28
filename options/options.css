@@ -5,7 +5,7 @@
   --text: #111;
   --muted: #666;
   --border: #ddd;
-  --accent: #10b981;
+  --accent: #3b82f6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -87,6 +87,29 @@ button,
   font: inherit;
   color: inherit;
   background: var(--panel);
+  cursor: pointer;
+}
+
+.colors {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.colors label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+input[type='color'] {
+  width: 36px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
   cursor: pointer;
 }
 

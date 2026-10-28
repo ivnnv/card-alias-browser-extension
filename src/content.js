@@ -24,17 +24,88 @@
     const all = await S.loadAll();
     cards = S.cardsFrom(all);
     siteRules = all[S.siteKey(location.hostname)] || [];
+    applyColors(S.colorsFrom(all));
+  }
+
+  // ---------- colors ----------
+
+  let colors = S.DEFAULT_COLORS;
+  const pageSheet = new CSSStyleSheet();
+
+  function rgba(hex, alpha) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+  }
+
+  function applyColors(next) {
+    colors = next;
+    pageSheet.replaceSync(`
+      ::highlight(card-alias-new) { background-color: ${rgba(colors.newColor, 0.2)}; text-decoration: underline dotted 2px ${colors.newColor}; }
+      ::highlight(card-alias-known) { background-color: ${rgba(colors.knownColor, 0.2)}; text-decoration: underline dotted 2px ${colors.knownColor}; }
+      ::highlight(card-alias-flash) { background-color: ${rgba(colors.newColor, 0.55)}; }`);
+    for (const rec of annotated.values()) paintBadge(rec.host);
+    dialog?.host.style.setProperty('--ca-known', colors.knownColor);
+  }
+
+  // A constructed sheet is not subject to the page's style-src CSP. Shadow roots need their own adoption.
+  function adoptSheet(root) {
+    if (!root.adoptedStyleSheets.includes(pageSheet)) root.adoptedStyleSheets = [...root.adoptedStyleSheets, pageSheet];
+  }
+
+  function paintBadge(host) {
+    host.style.setProperty('--ca-new', colors.newColor);
+    host.style.setProperty('--ca-known', colors.knownColor);
   }
 
   // ---------- reading the page ----------
 
-  function textOf(root) {
-    const parts = [];
+  // Text of root with each text node's offset, joined by spaces so separate
+  // elements never glue digits together ("7788" + "12 Oct" must not read "778812").
+  function textMap(root) {
+    const nodes = [];
+    let text = '';
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-      if (!n.parentElement?.closest(`[${UI_ATTR}]`)) parts.push(n.nodeValue);
+      if (n.parentElement?.closest(`[${UI_ATTR}]`)) continue;
+      if (text) text += ' ';
+      nodes.push({ node: n, start: text.length });
+      text += n.nodeValue;
     }
-    return P.normalize(parts.join(' '));
+    return { text, nodes };
+  }
+
+  function textOf(root) {
+    return P.normalize(textMap(root).text);
+  }
+
+  function pointAt(map, index, isEnd) {
+    const probe = isEnd ? index - 1 : index;
+    let entry = map.nodes[0];
+    for (const e of map.nodes) {
+      if (e.start > probe) break;
+      entry = e;
+    }
+    return [entry.node, Math.min(Math.max(index - entry.start, 0), entry.node.nodeValue.length)];
+  }
+
+  // The exact matched phrase inside row, ending in node; just the digits when nothing wider matches.
+  function rangeFor(row, node, suffix) {
+    const range = document.createRange();
+    const map = textMap(row);
+    const own = map.nodes.find((e) => e.node === node);
+    if (own) {
+      const nodeEnd = own.start + node.nodeValue.length;
+      const span = P.locate(map.text, suffix).find((s) => s.end > own.start && s.end <= nodeEnd);
+      if (span) {
+        range.setStart(...pointAt(map, span.start, false));
+        range.setEnd(...pointAt(map, span.end, true));
+        return range;
+      }
+    }
+    const at = Math.max(node.nodeValue.search(standalone(suffix)), 0);
+    range.setStart(node, at);
+    range.setEnd(node, Math.min(at + suffix.length, node.nodeValue.length));
+    return range;
   }
 
   // Smallest ancestor that still looks like one payment row: stops at list items,
@@ -77,9 +148,9 @@
     let hit = found.find((m) => [...own].some((d) => d.endsWith(m.suffix) && d.length === m.suffix.length));
     if (!hit) {
       const rule = siteRules.find((r) => standalone(r.last4).test(node.nodeValue));
-      if (rule) hit = { suffix: rule.last4, brand: rule.brand };
+      if (rule) hit = { suffix: rule.last4, brand: rule.brand, manual: true };
     }
-    if (hit) annotate(el, hit.brand, hit.suffix, false, node);
+    if (hit) annotate(el, hit.brand, hit.suffix, !!hit.manual, node, row);
   }
 
   function scan(root) {
@@ -102,26 +173,53 @@
   const BADGE_CSS = `
     button { all: unset; box-sizing: border-box; width: 18px; height: 18px; border-radius: 50%;
       display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
-      font: 700 12px/1 -apple-system, system-ui, sans-serif; color: #fff; background: #f59e0b;
+      font: 700 12px/1 -apple-system, system-ui, sans-serif; color: #fff; background: var(--ca-new);
       box-shadow: 0 0 0 2px rgba(0,0,0,.18); }
-    button.known { background: #10b981; font: italic 700 12px/1 Georgia, serif; }
+    button.known { background: var(--ca-known); font: italic 700 12px/1 Georgia, serif; }
     button:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }`;
 
   function isolate(host) {
     for (const type of ISOLATED_EVENTS) host.addEventListener(type, (e) => e.stopPropagation());
   }
 
+  // Highlights paint the matched text without touching the page's DOM or layout.
+  const HL = { new: new Highlight(), known: new Highlight(), flash: new Highlight() };
+  HL.flash.priority = 1;
+  CSS.highlights.set('card-alias-new', HL.new);
+  CSS.highlights.set('card-alias-known', HL.known);
+  CSS.highlights.set('card-alias-flash', HL.flash);
+
+  function flash(range) {
+    let ticks = 0;
+    const timer = setInterval(() => {
+      if (ticks % 2 === 0) HL.flash.add(range);
+      else HL.flash.delete(range);
+      if (++ticks >= 6) {
+        clearInterval(timer);
+        HL.flash.delete(range);
+      }
+    }, 350);
+  }
+
   // The badge goes right after the text node holding the digits, not at the end of el.
-  function annotate(el, brand, last4, manual = false, textNode = null) {
+  function annotate(el, brand, last4, manual = false, textNode = null, row = null) {
     const prev = annotated.get(el);
-    if (prev && prev.brand === brand && prev.last4 === last4 && prev.host.isConnected) return;
-    prev?.host.remove();
+    if (prev && prev.brand === brand && prev.last4 === last4 && prev.host.isConnected && !prev.range.collapsed) return;
+    if (prev) unannotate(prev);
+
+    let range;
+    if (textNode) range = rangeFor(row || findRow(el, digitsIn(textNode.nodeValue)), textNode, last4);
+    else {
+      range = document.createRange();
+      range.selectNodeContents(el);
+    }
 
     const host = document.createElement('card-alias-badge');
     host.setAttribute(UI_ATTR, 'badge');
     for (const [k, v] of [['display', 'inline-block'], ['vertical-align', 'middle'], ['margin', '0 0 0 6px'], ['line-height', '0'], ['position', 'relative']]) {
       host.style.setProperty(k, v, 'important');
     }
+    paintBadge(host);
     const shadow = host.attachShadow({ mode: 'closed' });
     const style = document.createElement('style');
     style.textContent = BADGE_CSS;
@@ -129,7 +227,7 @@
     button.type = 'button';
     shadow.append(style, button);
 
-    const rec = { el, host, button, brand, last4, manual };
+    const rec = { el, host, button, brand, last4, manual, range };
     button.addEventListener('click', (e) => {
       e.preventDefault();
       const card = S.find(cards, rec.brand, rec.last4);
@@ -139,16 +237,16 @@
     isolate(host);
     for (const type of ['click', 'mousedown', 'pointerdown']) host.addEventListener(type, (e) => e.preventDefault());
 
-    el.classList.add('cardalias-target');
     if (textNode?.parentNode === el) textNode.after(host);
     else el.appendChild(host);
     annotated.set(el, rec);
     render(rec);
+    flash(range);
   }
 
   function unannotate(rec) {
     rec.host.remove();
-    rec.el.classList.remove('cardalias-target', 'cardalias-known');
+    for (const h of Object.values(HL)) h.delete(rec.range);
     annotated.delete(rec.el);
   }
 
@@ -158,12 +256,14 @@
     rec.button.className = card ? 'known' : '';
     rec.button.title = card ? `Alias: ${card.alias}` : `Add alias for ${label(rec.brand)}:${rec.last4}`;
     rec.button.setAttribute('aria-label', rec.button.title);
-    rec.el.classList.toggle('cardalias-known', !!card);
+    HL[card ? 'known' : 'new'].add(rec.range);
+    HL[card ? 'new' : 'known'].delete(rec.range);
   }
 
   function renderAll() {
     for (const rec of [...annotated.values()]) {
-      if (!rec.el.isConnected || !standalone(rec.last4).test(textOf(rec.el))) unannotate(rec);
+      const ruleGone = rec.manual && !siteRules.some((r) => r.brand === rec.brand && r.last4 === rec.last4);
+      if (!rec.el.isConnected || rec.range.collapsed || ruleGone || !standalone(rec.last4).test(textOf(rec.el))) unannotate(rec);
       else render(rec);
     }
   }
@@ -182,9 +282,11 @@
     .row > span { flex: none; color: #555; }
     input, select { flex: 1; min-width: 0; font: inherit; padding: 6px 8px; border: 1px solid #ccc;
       border-radius: 8px; color: inherit; background: #fff; }
-    input:disabled { background: #f3f3f3; color: #111; -webkit-text-fill-color: #111; }
+    input:disabled { background: #e5e7eb; border-color: transparent; color: #4b5563; -webkit-text-fill-color: #4b5563; cursor: default; }
+    input:not(:disabled):focus { outline: none; border-color: var(--ca-known); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ca-known) 30%, transparent); }
     button { font: inherit; padding: 6px 10px; border: 0; border-radius: 8px; cursor: pointer; background: #eee; color: inherit; }
-    button.primary { background: #10b981; color: #fff; }
+    button.primary { background: var(--ca-known); color: #fff; }
+    button.armed { background: #dc2626; color: #fff; }
     .icon { padding: 6px 8px; }
     .actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
     .msg { margin-top: 10px; font-size: 13px; color: #059669; }
@@ -194,7 +296,7 @@
       .panel { color: #eee; background: #1f1f22; }
       .row > span { color: #aaa; }
       input, select { border-color: #444; background: #2a2a2e; }
-      input:disabled { background: #252528; color: #eee; -webkit-text-fill-color: #eee; }
+      input:disabled { background: #111113; border-color: transparent; color: #a1a1aa; -webkit-text-fill-color: #a1a1aa; }
       button { background: #333; }
     }`;
 
@@ -227,6 +329,7 @@
       transform: 'none', 'color-scheme': 'normal',
     };
     for (const [k, v] of Object.entries(reset)) host.style.setProperty(k, v, 'important');
+    host.style.setProperty('--ca-known', colors.knownColor);
     const inner = document.createElement('card-alias-dialog');
     const shadow = inner.attachShadow({ mode: 'closed' });
     const layer = h('div', { className: `layer${modal ? ' modal' : ''}` });
@@ -301,10 +404,29 @@
       }
     });
 
+    // First click arms it, second click deletes.
+    const remove = h('button', { className: 'icon', textContent: '🗑', title: 'Delete alias' });
+    remove.addEventListener('click', async () => {
+      if (!remove.classList.contains('armed')) {
+        remove.classList.add('armed');
+        remove.textContent = 'Delete?';
+        return;
+      }
+      try {
+        await S.removeCard(card.brand, card.last4);
+        await S.removeSiteRule(location.hostname, card.brand, card.last4);
+        await refreshState();
+        renderAll();
+        closeDialog();
+      } catch (err) {
+        showMsg(msg, `Could not delete: ${err.message}`, true);
+      }
+    });
+
     panel.append(
       h('button', { className: 'close', textContent: '×', title: 'Close', onclick: closeDialog }),
       h('h2', { textContent: `${label(card.brand)} •••• ${card.last4}` }),
-      h('div', { className: 'row' }, h('span', { textContent: 'Alias:' }), input, edit),
+      h('div', { className: 'row' }, h('span', { textContent: 'Alias:' }), input, edit, remove),
       msg
     );
     place(panel, anchor);
@@ -437,34 +559,22 @@
     if (pending.size && !timer) timer = setTimeout(flush, 150);
   });
 
-  let targetSheet = null;
-
-  // content.css only reaches the main document; shadow roots need their own copy.
-  function adoptTargetCss(root) {
-    if (!targetSheet) {
-      targetSheet = new CSSStyleSheet();
-      targetSheet.replaceSync(`
-        .cardalias-target { outline: 2px dotted #f59e0b !important; outline-offset: 2px !important; animation: cardalias-flash 0.8s ease-in-out 3; }
-        .cardalias-target.cardalias-known { outline-color: #10b981 !important; }
-        @keyframes cardalias-flash { 50% { outline-color: transparent; } }`);
-    }
-    root.adoptedStyleSheets = [...root.adoptedStyleSheets, targetSheet];
-  }
-
   function observe(root) {
     observedRoots.add(root);
-    if (root instanceof ShadowRoot) adoptTargetCss(root);
+    adoptSheet(root);
     observer.observe(root, { childList: true, subtree: true, characterData: true });
   }
 
   chrome.storage.onChanged.addListener(async (changes, area) => {
     if (area !== 'sync') return;
     await refreshState();
+    adoptSheet(document);
     if (S.siteKey(location.hostname) in changes) scan(document.documentElement);
     renderAll();
   });
 
   (async () => {
+    document.documentElement.setAttribute('data-card-alias', 'active');
     await refreshState();
     observe(document);
     scan(document.documentElement);

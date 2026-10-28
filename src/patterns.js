@@ -57,6 +57,14 @@
     'giu'
   );
 
+  // Wider than detection: also takes a leading brand ("Visa 6610", "Mastercard ending in 7788")
+  // so the highlight covers the whole phrase once a row is already known to hold a card.
+  const PREFIX = String.raw`(?:(?:${BRAND_ALT})${GAP}(?:(?:${TYPE_ALT})${GAP})?)?(?:(?:cards?|tarjeta)${GAP})?`;
+  const LOCATE = new RegExp(
+    String.raw`${START}${PREFIX}(?:(?:${PHRASES})${GAP})?(?:${MASK_TOKEN}${GAP})*${SUFFIX}`,
+    'giu'
+  );
+
   const CARD_CONTEXT = /\b(?:cards?|debit|credit|prepaid|payment|pay|wallet|billing|tarjetas?|d[eé]bito|cr[eé]dito|prepago|pago|monedero|device\s+account)\b/i;
   const EXCLUDE = /\b(?:phone|tel[eé]fono|m[oó]vil|mobile|sms|whatsapp|iban|swift|bic)\b|\+\d{1,3}[\s-]?\d/i;
 
@@ -94,7 +102,15 @@
       .filter((m) => m.suffix.length === 4 || m.brand === 'amex');
   }
 
-  const api = { LABELS, analyze, brandOf, detect, normalize };
+  function locate(text, suffix) {
+    const spans = [];
+    for (const m of text.matchAll(LOCATE)) {
+      if (m.groups.suffix === suffix) spans.push({ start: m.index, end: m.index + m[0].length });
+    }
+    return spans;
+  }
+
+  const api = { LABELS, analyze, brandOf, detect, locate, normalize };
   root.CardAliasPatterns = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(globalThis);

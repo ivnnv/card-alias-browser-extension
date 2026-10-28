@@ -38,7 +38,41 @@
     await area().set({ [key]: [...rules, { brand, last4 }] });
   }
 
-  const api = { cardKey, siteKey, cardsFrom, find, loadAll, saveCard, removeCard, addSiteRule };
+  async function removeSiteRule(host, brand, last4) {
+    const key = siteKey(host);
+    const rules = (await area().get(key))[key] || [];
+    const kept = rules.filter((r) => !(r.brand === brand && r.last4 === last4));
+    if (kept.length === rules.length) return;
+    if (kept.length) await area().set({ [key]: kept });
+    else await area().remove(key);
+  }
+
+  const SETTINGS_KEY = 'settings';
+  const DEFAULT_COLORS = { newColor: '#d97706', knownColor: '#3b82f6' };
+
+  function colorsFrom(all) {
+    return { ...DEFAULT_COLORS, ...(all?.[SETTINGS_KEY]?.colors || {}) };
+  }
+
+  async function saveColors(colors) {
+    await area().set({ [SETTINGS_KEY]: { colors } });
+  }
+
+  const api = {
+    SETTINGS_KEY,
+    DEFAULT_COLORS,
+    cardKey,
+    siteKey,
+    cardsFrom,
+    colorsFrom,
+    find,
+    loadAll,
+    saveCard,
+    saveColors,
+    removeCard,
+    addSiteRule,
+    removeSiteRule,
+  };
   root.CardAliasStore = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(globalThis);

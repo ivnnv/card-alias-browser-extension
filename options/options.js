@@ -48,7 +48,17 @@ async function render() {
     siteList.append(el('li', {}, el('span', { className: 'card', textContent: key.slice(5) }), el('span', { className: 'sub', textContent: text, style: 'flex:1' }), remove));
   }
   $('no-sites').hidden = sites.length > 0;
+
+  const colors = S.colorsFrom(all);
+  $('new-color').value = colors.newColor;
+  $('known-color').value = colors.knownColor;
 }
+
+// 'change' fires once the picker closes, so dragging doesn't hit the sync write quota.
+for (const id of ['new-color', 'known-color']) {
+  $(id).onchange = () => S.saveColors({ newColor: $('new-color').value, knownColor: $('known-color').value });
+}
+$('reset-colors').onclick = () => S.saveColors({ ...S.DEFAULT_COLORS });
 
 $('export').onclick = async () => {
   const blob = new Blob([JSON.stringify(await S.loadAll(), null, 2)], { type: 'application/json' });
@@ -66,7 +76,8 @@ $('import').onchange = async (e) => {
     const valid = Object.fromEntries(
       Object.entries(data).filter(([key, v]) =>
         (key.startsWith('card:') && /^\d{4,5}$/.test(v?.last4) && typeof v?.alias === 'string' && typeof v?.brand === 'string') ||
-        (key.startsWith('site:') && Array.isArray(v))
+        (key.startsWith('site:') && Array.isArray(v)) ||
+        (key === S.SETTINGS_KEY && typeof v?.colors === 'object')
       )
     );
     await chrome.storage.sync.set(valid);
