@@ -1,5 +1,5 @@
-import { locate, normalize } from '../shared/patterns';
-import { UI_ATTR } from './state';
+import { locate, normalize } from '../shared/patterns.ts';
+import { UI_ATTR } from './state.ts';
 
 const ROW_MAX = 160;
 const ROW_STOP =

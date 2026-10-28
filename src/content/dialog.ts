@@ -1,10 +1,10 @@
-import { type Brand, LABELS } from '../shared/patterns';
-import { addSiteRule, type Card, removeCard, removeSiteRule, saveCard } from '../shared/store';
-import { annotateTarget, renderAll } from './badges';
+import { type Brand, LABELS } from '../shared/patterns.ts';
+import { addSiteRule, type Card, removeCard, removeSiteRule, saveCard, type SiteRule } from '../shared/store.ts';
+import { annotateTarget, renderAll } from './badges.ts';
 import dialogCss from './dialog.css?inline';
-import { h, isolate } from './dom';
-import { state, UI_ATTR } from './state';
-import { refresh } from './sync';
+import { h, isolate } from './dom.ts';
+import { state, UI_ATTR } from './state.ts';
+import { refresh } from './sync.ts';
 
 const HOST_RESET: Record<string, string> = {
   position: 'fixed',
@@ -89,7 +89,8 @@ function showMsg(el: HTMLElement, text: string, error = false): void {
 const closeButton = () => h('button', { className: 'close', textContent: '×', title: 'Close', onclick: closeDialog });
 
 /** Saved alias: read-only until ✏️, with a two-click delete. */
-export function openInfo(card: Card, anchor: Element): void {
+/** `shown` is what the badge matched, which can differ from the saved card when one side is a generic "card". */
+export function openInfo(card: Card, anchor: Element, shown: SiteRule): void {
   const panel = mountDialog(anchor, false);
   const input = h('input', { value: card.alias, disabled: true, maxLength: 60 });
   input.setAttribute('aria-label', 'Alias');
@@ -141,6 +142,7 @@ export function openInfo(card: Card, anchor: Element): void {
     try {
       await removeCard(card.brand, card.last4);
       await removeSiteRule(location.hostname, card.brand, card.last4);
+      await removeSiteRule(location.hostname, shown.brand, shown.last4);
       await refresh();
       renderAll();
       closeDialog();

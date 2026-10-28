@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/icons/logo.svg" width="96" height="96" alt="Card Alias logo" />
+  <img src="assets/logo.svg" width="96" height="96" alt="Card Alias logo" />
 </p>
 
 <h1 align="center">Card Alias</h1>
@@ -18,7 +18,7 @@
 
 Most payment pages list your saved cards as a brand and the last four digits, and almost none let you name them. Was 2071 the work card or the travel one?
 
-Card Alias finds masked card numbers on any page and puts your own name for that card right next to it.
+Card Alias finds masked card numbers on any page and marks them, so one click shows the name you gave that card.
 
 <!-- TODO: screenshot of the extension on a checkout page -->
 
@@ -47,7 +47,7 @@ pnpm install
 pnpm build
 ```
 
-Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick the `dist` folder.
+Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick `.output/chrome-mv3`.
 
 ## Development
 
@@ -58,43 +58,50 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` rebuilds into `dist/` on every change. Load `dist/` unpacked once. After that, the extension reloads itself after each rebuild, and so does any open `localhost` page.
+`pnpm dev` opens a separate Chrome profile with the extension loaded and reloads it on every change.
 
-The test page has realistic checkout layouts and decoys that must not be marked:
+It starts on the test page, which has realistic checkout layouts plus decoys that must not be marked. Serve it in another terminal:
 
 ```sh
 pnpm fixture
 ```
 
-Then open http://127.0.0.1:8765/test/fixture.html. It shows whether the extension is running and has a light/dark switch.
+The page lives at http://127.0.0.1:8765/test/fixture.html. It shows whether the extension is running and has a light/dark switch.
 
 ### Scripts
 
-| Script                      | What it does                                   |
-| --------------------------- | ---------------------------------------------- |
-| `pnpm dev`                  | Development build with watch and auto-reload   |
-| `pnpm build`                | Production build into `dist/`                  |
-| `pnpm check`                | Typecheck, lint, format check, tests and build |
-| `pnpm test`                 | Detection tests (`node --test`, no build step) |
-| `pnpm typecheck`            | Type checking with `tsrs`                      |
-| `pnpm lint` / `pnpm format` | `oxlint` / `oxfmt`                             |
-| `pnpm fixture`              | Serves the test page on port 8765              |
+| Script                      | What it does                                             |
+| --------------------------- | -------------------------------------------------------- |
+| `pnpm dev`                  | Opens Chrome with the extension and reloads it on change |
+| `pnpm build`                | Production build into `.output/chrome-mv3`               |
+| `pnpm zip`                  | Zip for the Chrome Web Store                             |
+| `pnpm check`                | Typecheck, lint, format check, tests and build           |
+| `pnpm test`                 | Detection tests (`node --test`, no build step)           |
+| `pnpm typecheck`            | Type checking with `tsrs`                                |
+| `pnpm lint` / `pnpm format` | `oxlint` / `oxfmt`                                       |
+| `pnpm fixture`              | Serves the test page on port 8765                        |
 
 ### Stack
 
-[Rsbuild](https://rsbuild.dev) for the build, TypeScript in strict mode checked by [tsrs](https://github.com/oxc-project/tsrs), and [oxlint](https://oxc.rs/docs/guide/usage/linter) and [oxfmt](https://oxc.rs) for lint and formatting. No runtime dependencies.
+[WXT](https://wxt.dev) on Vite 8 (Rolldown, built on Oxc) for the build, TypeScript in strict mode checked by [tsrs](https://github.com/oxc-project/tsrs), and [oxlint](https://oxc.rs/docs/guide/usage/linter) and [oxfmt](https://oxc.rs) for lint and formatting. No runtime dependencies.
 
 ### Layout
 
 ```
 src/
-  manifest.ts      manifest source; the version comes from package.json
-  shared/          detection patterns, storage and messages
+  entrypoints/     content script, background worker and settings page
   content/         page scanning, highlights, badges and dialogs
-  background/      context menu and dev auto-reload
-  options/         settings page
-test/              detection tests and the fixture page
+  shared/          detection patterns, storage and messages
+public/icons/      extension icons
+test/              unit tests and the fixture page
+wxt.config.ts      manifest; the version comes from package.json
 ```
+
+## Limitations
+
+- Cards are told apart by brand and last four digits. Two cards that share both get one alias.
+- Text drawn on a canvas, or inside a closed shadow root, can't be read. Right-click works there only when the number is selectable.
+- Detection is tuned for English and Spanish wording. Other languages work when the number is masked with dots or asterisks next to a brand name.
 
 ## Contributing
 

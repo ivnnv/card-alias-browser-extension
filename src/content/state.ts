@@ -1,4 +1,4 @@
-import { type Cards, type Colors, DEFAULT_COLORS, type SiteRule } from '../shared/store';
+import { type Cards, type Colors, DEFAULT_COLORS, type SiteRule } from '../shared/store.ts';
 
 /** Marks every element the extension adds, so scans and observers skip them. */
 export const UI_ATTR = 'data-card-alias-ui';

@@ -1,4 +1,4 @@
-import type { Brand } from './patterns';
+import { type Brand, LABELS } from './patterns.ts';
 
 export interface Card {
   brand: Brand;
@@ -34,12 +34,35 @@ export function cardsFrom(all: StoredData): Cards {
 }
 
 export function rulesFrom(all: StoredData, host: string): SiteRule[] {
-  return (all[siteKey(host)] as SiteRule[] | undefined) ?? [];
+  const rules = all[siteKey(host)];
+  return Array.isArray(rules) ? rules.filter(isSiteRule) : [];
+}
+
+const isBrand = (v: unknown): v is Brand => typeof v === 'string' && v in LABELS;
+const isLast4 = (v: unknown): v is string => typeof v === 'string' && /^\d{4,5}$/.test(v);
+const isHex = (v: unknown): v is string => typeof v === 'string' && /^#[\da-f]{6}$/i.test(v);
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+
+const isCard = (v: unknown): v is Card =>
+  isRecord(v) && isBrand(v.brand) && isLast4(v.last4) && typeof v.alias === 'string' && v.alias.trim().length > 0;
+const isSiteRule = (v: unknown): v is SiteRule => isRecord(v) && isBrand(v.brand) && isLast4(v.last4);
+const isColors = (v: unknown): v is Colors => isRecord(v) && isHex(v.newColor) && isHex(v.knownColor);
+
+/** Only the entries of an exported file that are safe to write back to storage. */
+export function importable(data: unknown): StoredData {
+  if (!isRecord(data)) return {};
+  return Object.fromEntries(
+    Object.entries(data).filter(([key, v]) => {
+      if (key.startsWith('card:')) return isCard(v) && key === cardKey(v.brand, v.last4);
+      if (key.startsWith('site:')) return Array.isArray(v) && v.length > 0 && v.every(isSiteRule);
+      return key === SETTINGS_KEY && isRecord(v) && isColors(v.colors);
+    }),
+  );
 }
 
 export function colorsFrom(all: StoredData): Colors {
-  const saved = (all[SETTINGS_KEY] as { colors?: Partial<Colors> } | undefined)?.colors;
-  return { ...DEFAULT_COLORS, ...saved };
+  const saved = (all[SETTINGS_KEY] as { colors?: unknown } | undefined)?.colors;
+  return isColors(saved) ? saved : DEFAULT_COLORS;
 }
 
 // A generic "card" on either side matches any brand, as long as only one card has those digits.

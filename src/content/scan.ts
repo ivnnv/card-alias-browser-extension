@@ -1,8 +1,8 @@
-import { analyze, type Brand } from '../shared/patterns';
-import { annotate, renderAll } from './badges';
-import { digitsIn, findRow, hintsOf, standalone, textOf } from './dom';
-import { adoptSheet } from './highlights';
-import { state, UI_ATTR } from './state';
+import { analyze, type Brand } from '../shared/patterns.ts';
+import { annotate, renderAll } from './badges.ts';
+import { digitsIn, findRow, hintsOf, standalone, textOf } from './dom.ts';
+import { adoptSheet } from './highlights.ts';
+import { state, UI_ATTR } from './state.ts';
 
 const SKIP =
   'script,style,noscript,textarea,input,select,option,template,[contenteditable=""],[contenteditable="true"]';
@@ -39,7 +39,10 @@ export function scan(root: Node): void {
   }
   nodes.forEach(handleTextNode);
   if (!('querySelectorAll' in root)) return;
-  for (const host of (root as ParentNode).querySelectorAll('*')) {
+  // The root itself can be a shadow host, e.g. a widget inserted after load.
+  const hosts =
+    root instanceof Element ? [root, ...root.querySelectorAll('*')] : (root as ParentNode).querySelectorAll('*');
+  for (const host of hosts) {
     if (host.shadowRoot && !observedRoots.has(host.shadowRoot)) {
       observe(host.shadowRoot);
       scan(host.shadowRoot);
@@ -63,11 +66,14 @@ function flush(): void {
 }
 
 const observer = new MutationObserver((mutations) => {
+  let removed = false;
   for (const m of mutations) {
     if (m.type === 'characterData') pending.add(m.target);
     else for (const n of m.addedNodes) if (!(n instanceof Element && n.hasAttribute(UI_ATTR))) pending.add(n);
+    if (m.removedNodes.length) removed = true;
   }
-  if (pending.size && !timer) timer = window.setTimeout(flush, 150);
+  // Removals need no scan, only a renderAll to drop badges whose text is gone.
+  if ((pending.size || removed) && !timer) timer = window.setTimeout(flush, 150);
 });
 
 export function observe(root: Document | ShadowRoot): void {

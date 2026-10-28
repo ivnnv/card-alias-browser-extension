@@ -1,4 +1,4 @@
-import type { Colors } from '../shared/store';
+import type { Colors } from '../shared/store.ts';
 
 // Highlights paint the matched text without touching the page's DOM or layout.
 export const HL = { new: new Highlight(), known: new Highlight(), flash: new Highlight() };

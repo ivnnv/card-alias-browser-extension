@@ -25,5 +25,5 @@
   "globals": {
     "chrome": "readonly"
   },
-  "ignorePatterns": ["dist", "node_modules"]
+  "ignorePatterns": ["node_modules", ".output", ".wxt"]
 }

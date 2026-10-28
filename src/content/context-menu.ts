@@ -1,7 +1,7 @@
-import { ADD_ALIAS, type Message } from '../shared/messages';
-import { analyze, brandOf } from '../shared/patterns';
-import { openAdd } from './dialog';
-import { digitsIn, findRow, hintsOf, textOf } from './dom';
+import { ADD_ALIAS, type Message } from '../shared/messages.ts';
+import { analyze, brandOf } from '../shared/patterns.ts';
+import { openAdd } from './dialog.ts';
+import { digitsIn, findRow, hintsOf, textOf } from './dom.ts';
 
 let lastTarget: Element | null = null;
 

@@ -1,10 +1,10 @@
-import { type Brand, LABELS } from '../shared/patterns';
-import { find } from '../shared/store';
+import { type Brand, LABELS } from '../shared/patterns.ts';
+import { find } from '../shared/store.ts';
 import badgeCss from './badge.css?inline';
-import { openAdd, openInfo } from './dialog';
-import { digitsIn, findRow, isolate, rangeFor, standalone, textOf } from './dom';
-import { HL, flash, unhighlight } from './highlights';
-import { state, UI_ATTR } from './state';
+import { openAdd, openInfo } from './dialog.ts';
+import { digitsIn, findRow, isolate, rangeFor, standalone, textOf } from './dom.ts';
+import { HL, flash, unhighlight } from './highlights.ts';
+import { state, UI_ATTR } from './state.ts';
 
 interface Annotation {
   el: Element;
@@ -75,7 +75,7 @@ export function annotate(
   button.addEventListener('click', (e) => {
     e.preventDefault();
     const card = find(state.cards, a.brand, a.last4);
-    if (card) openInfo(card, host);
+    if (card) openInfo(card, host, { brand: a.brand, last4: a.last4 });
     else openAdd({ brand: a.brand, last4: a.last4, anchor: host });
   });
   isolate(host);

@@ -1,17 +1,16 @@
-import { type Brand, LABELS } from '../shared/patterns';
+import { type Brand, LABELS } from '../../shared/patterns.ts';
 import {
   type Card,
   cardsFrom,
   colorsFrom,
   DEFAULT_COLORS,
+  importable,
   loadAll,
   removeCard,
   saveCard,
   saveColors,
-  SETTINGS_KEY,
   type SiteRule,
-  type StoredData,
-} from '../shared/store';
+} from '../../shared/store.ts';
 import './options.css';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -108,23 +107,13 @@ $('export').addEventListener('click', async () => {
   URL.revokeObjectURL(a.href);
 });
 
-function isImportable([key, v]: [string, unknown]): boolean {
-  const value = v as Partial<Card> & { colors?: unknown };
-  if (key.startsWith('card:')) {
-    return /^\d{4,5}$/.test(value?.last4 ?? '') && typeof value?.alias === 'string' && typeof value?.brand === 'string';
-  }
-  if (key.startsWith('site:')) return Array.isArray(v);
-  return key === SETTINGS_KEY && typeof value?.colors === 'object';
-}
-
 $('import').addEventListener('change', async (e) => {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
   if (!file) return;
   try {
-    const data = JSON.parse(await file.text()) as StoredData;
-    const valid = Object.fromEntries(Object.entries(data).filter(isImportable));
+    const valid = importable(JSON.parse(await file.text()));
     await chrome.storage.sync.set(valid);
     status(`Imported ${Object.keys(valid).length} entries`);
   } catch (err) {
