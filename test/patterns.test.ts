@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from 'bun:test';
 import { analyze, type Brand, locate } from '../src/shared/patterns.ts';
 
 const hits: [text: string, brand: Brand, suffix: string][] = [
@@ -38,16 +37,16 @@ const hits: [text: string, brand: Brand, suffix: string][] = [
 
 for (const [text, brand, suffix] of hits) {
   test(`detects: ${text}`, () => {
-    assert.deepEqual(analyze(text), [{ brand, suffix }]);
+    expect(analyze(text)).toEqual([{ brand, suffix }]);
   });
 }
 
 test('brand from image alt counts as context', () => {
-  assert.deepEqual(analyze('•••• 2071', 'VISA'), [{ brand: 'visa', suffix: '2071' }]);
+  expect(analyze('•••• 2071', 'VISA')).toEqual([{ brand: 'visa', suffix: '2071' }]);
 });
 
 test('brand from class name or file name', () => {
-  assert.deepEqual(analyze('Card •••• 2071', '', 'brand mastercard'), [{ brand: 'mastercard', suffix: '2071' }]);
+  expect(analyze('Card •••• 2071', '', 'brand mastercard')).toEqual([{ brand: 'mastercard', suffix: '2071' }]);
 });
 
 const decoys = [
@@ -69,7 +68,7 @@ const decoys = [
 
 for (const text of decoys) {
   test(`ignores: ${text}`, () => {
-    assert.deepEqual(analyze(text), []);
+    expect(analyze(text)).toEqual([]);
   });
 }
 
@@ -82,9 +81,6 @@ const phrases: [text: string, suffix: string, expected: string][] = [
 
 for (const [text, suffix, expected] of phrases) {
   test(`highlights "${expected}"`, () => {
-    assert.deepEqual(
-      locate(text, suffix).map((s) => text.slice(s.start, s.end)),
-      [expected],
-    );
+    expect(locate(text, suffix).map((s) => text.slice(s.start, s.end))).toEqual([expected]);
   });
 }

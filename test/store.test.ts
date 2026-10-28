@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { expect, test } from 'bun:test';
 import { colorsFrom, DEFAULT_COLORS, importable, rulesFrom } from '../src/shared/store.ts';
 
 test('imports well-formed cards, site rules and colors', () => {
@@ -8,7 +7,7 @@ test('imports well-formed cards, site rules and colors', () => {
     'site:shop.example': [{ brand: 'card', last4: '8123' }],
     settings: { colors: { newColor: '#d97706', knownColor: '#3b82f6' } },
   };
-  assert.deepEqual(importable(data), data);
+  expect(importable(data)).toEqual(data);
 });
 
 test('drops malformed entries and keeps the rest', () => {
@@ -22,24 +21,24 @@ test('drops malformed entries and keeps the rest', () => {
     settings: { colors: { newColor: 42, knownColor: '#3b82f6' } },
     other: 'ignored',
   };
-  assert.deepEqual(Object.keys(importable(data)), ['card:visa:2071']);
+  expect(Object.keys(importable(data))).toEqual(['card:visa:2071']);
 });
 
 test('rejects inherited object keys as brands', () => {
-  assert.deepEqual(importable({ 'card:constructor:2071': { brand: 'constructor', last4: '2071', alias: 'x' } }), {});
+  expect(importable({ 'card:constructor:2071': { brand: 'constructor', last4: '2071', alias: 'x' } })).toEqual({});
 });
 
 test('rejects files that are not objects', () => {
-  assert.deepEqual(importable(null), {});
-  assert.deepEqual(importable([1, 2]), {});
+  expect(importable(null)).toEqual({});
+  expect(importable([1, 2])).toEqual({});
 });
 
 test('bad stored colors fall back to the defaults', () => {
-  assert.deepEqual(colorsFrom({ settings: { colors: { newColor: 'red', knownColor: '#3b82f6' } } }), DEFAULT_COLORS);
+  expect(colorsFrom({ settings: { colors: { newColor: 'red', knownColor: '#3b82f6' } } })).toEqual(DEFAULT_COLORS);
 });
 
 test('bad stored site rules are skipped', () => {
-  assert.deepEqual(rulesFrom({ 'site:x': [null, { brand: 'visa', last4: '2071' }] }, 'x'), [
+  expect(rulesFrom({ 'site:x': [null, { brand: 'visa', last4: '2071' }] }, 'x')).toEqual([
     { brand: 'visa', last4: '2071' },
   ]);
 });

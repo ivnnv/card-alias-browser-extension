@@ -1,34 +1,35 @@
 {
   "name": "card-alias-browser-extension",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "private": true,
   "description": "Chrome extension that shows your own aliases next to masked card numbers like •••• 2071",
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "wxt",
-    "build": "wxt build",
-    "zip": "wxt zip",
-    "postinstall": "wxt prepare",
+    "dev": "bun --bun wxt",
+    "build": "bun --bun wxt build",
+    "zip": "bun --bun wxt zip",
+    "postinstall": "bun --bun wxt prepare",
     "typecheck": "tsrs --noEmit",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "test": "node --test test/*.test.ts",
+    "test": "bun test",
     "fixture": "python3 -m http.server 8765 --bind 127.0.0.1",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build"
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun test && bun run build"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.4",
     "@types/chrome": "^0.3.6",
-    "@types/node": "^26.6.5",
     "oxfmt": "^0.75.0",
     "oxlint": "^1.90.0",
     "tsrs": "0.20.0-ts7.1.0-beta",
     "vite": "^8.3.5",
+    "web-ext": "^10.8.0",
     "wxt": "^0.21.5"
   },
   "engines": {
-    "node": ">=24"
+    "bun": ">=1.4"
   },
-  "packageManager": "pnpm@12.4.1"
+  "packageManager": "bun@1.4.4"
 }
