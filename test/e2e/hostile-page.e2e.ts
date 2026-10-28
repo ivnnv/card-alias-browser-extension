@@ -82,6 +82,9 @@ test('a hostile page cannot read an alias while it is typed, saved or shown', as
   await badge.click();
   const info = await editorFrame(page);
   await expect(info.getByLabel('Alias')).toHaveValue(ALIAS);
+  await info.getByLabel('Alias').press('Escape');
+  // Hovering shows the alias in the badge tooltip, which must stay out of the page's reach too.
+  await badge.hover();
 
   expect(await pageSaw(page, ALIAS)).toEqual([]);
   // The editor talks to the content script over extension messaging, never through the page.
