@@ -1,8 +1,25 @@
 {
   "name": "card-alias-browser-extension",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
+  "description": "Chrome extension that shows your own aliases next to masked card numbers like •••• 2071",
+  "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "dev": "rsbuild build --watch --mode development",
+    "build": "rsbuild build",
+    "typecheck": "tsrs --noEmit",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "node --test test/*.test.ts",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^2.2.14",
+    "@types/chrome": "^0.3.6",
+    "@types/node": "^26.6.5",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
+    "tsrs": "0.20.0-ts7.1.0-beta"
   }
 }

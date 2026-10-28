@@ -22,7 +22,10 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.5 -apple-system, system-ui, sans-serif;
+  font:
+    14px/1.5 -apple-system,
+    system-ui,
+    sans-serif;
 }
 
 main {
@@ -118,4 +121,8 @@ input[type='color'] {
   gap: 8px;
   align-items: center;
   margin-top: 28px;
+}
+
+.grow {
+  flex: 1;
 }

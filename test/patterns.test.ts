@@ -1,8 +1,8 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { analyze } = require('../src/patterns.js');
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { analyze, type Brand, locate } from '../src/shared/patterns.ts';
 
-const hits = [
+const hits: [text: string, brand: Brand, suffix: string][] = [
   ['Visa Debit •••• 2071', 'visa', '2071'],
   ['Card •••• 5896', 'card', '5896'],
   ['Visa ****2071', 'visa', '2071'],
@@ -70,5 +70,21 @@ const decoys = [
 for (const text of decoys) {
   test(`ignores: ${text}`, () => {
     assert.deepEqual(analyze(text), []);
+  });
+}
+
+const phrases: [text: string, suffix: string, expected: string][] = [
+  ['Visa 6610 3 Oct 2026', '6610', 'Visa 6610'],
+  ['Order #2071 · Paid with Mastercard ending in 7788 12 Oct 2026', '7788', 'Mastercard ending in 7788'],
+  ['Visa Debit •••• 2071', '2071', 'Visa Debit •••• 2071'],
+  ['Tarjeta de débito terminada en 4410', '4410', 'terminada en 4410'],
+];
+
+for (const [text, suffix, expected] of phrases) {
+  test(`highlights "${expected}"`, () => {
+    assert.deepEqual(
+      locate(text, suffix).map((s) => text.slice(s.start, s.end)),
+      [expected],
+    );
   });
 }
