@@ -33,6 +33,8 @@ export interface EditorParams {
 export interface OpenEditorMessage {
   type: typeof OPEN_EDITOR;
   params: EditorParams;
+  /** The asking frame has an opaque origin (sandboxed), so a nested editor would inherit its sandbox. */
+  popup: boolean;
 }
 
 export interface EditorSession {

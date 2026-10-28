@@ -30,7 +30,11 @@ function post(message: EditorPayload): void {
     .catch(() => {});
 }
 
-const close = () => post({ type: 'close' });
+const close = () => {
+  post({ type: 'close' });
+  // Opened as its own popup window (from a sandboxed frame) rather than framed into the page.
+  if (window.top === window) window.close();
+};
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 function showMsg(el: HTMLElement, text: string, error = false): void {

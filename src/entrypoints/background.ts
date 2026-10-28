@@ -37,7 +37,13 @@ export default defineBackground(() => {
       frameId: sender.frameId ?? 0,
       expires: Date.now() + SESSION_TTL_MS,
     };
-    void chrome.storage.session.set({ [sessionKey(token)]: session }).then(() => sendResponse(token));
+    void chrome.storage.session.set({ [sessionKey(token)]: session }).then(async () => {
+      if (msg.popup) {
+        const url = chrome.runtime.getURL(`/editor.html?t=${token}`);
+        await chrome.windows.create({ url, type: 'popup', width: 340, height: 240, focused: true });
+      }
+      sendResponse(token);
+    });
     return true;
   });
 });

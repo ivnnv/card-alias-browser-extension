@@ -124,6 +124,31 @@ test('a page that frames the editor itself gets an empty, silent frame', async (
   expect(await worker!.evaluate(() => chrome.storage.sync.get(null))).toEqual(before);
 });
 
+test('a card inside a sandboxed frame opens the editor as a popup window', async () => {
+  const page = await context.newPage();
+  await page.goto(SHOP);
+  await page.evaluate(() => {
+    const frame = document.createElement('iframe');
+    frame.setAttribute('sandbox', 'allow-scripts');
+    frame.srcdoc = '<meta charset="utf-8"><p>Mastercard •••• 5151</p>';
+    document.body.append(frame);
+  });
+  const sandboxed = page.frameLocator('iframe[sandbox]');
+  await expect(sandboxed.locator('card-alias-badge')).toHaveCount(1);
+
+  const popupPromise = context.waitForEvent('page', (p) => p.url().includes('/editor.html'));
+  await sandboxed.locator('card-alias-badge').click();
+  const editor = await popupPromise;
+  await editor.getByLabel('Alias').pressSequentially('Sandboxed card');
+  await editor.getByLabel('Alias').press('Enter');
+
+  const [worker] = context.serviceWorkers();
+  await expect
+    .poll(() => worker!.evaluate(() => chrome.storage.sync.get('card:mastercard:5151')))
+    .toMatchObject({ 'card:mastercard:5151': { alias: 'Sandboxed card' } });
+  expect(await pageSaw(page, 'Sandboxed card')).toEqual([]);
+});
+
 test('control: the same spy does catch text typed into the page itself', async () => {
   const page = await context.newPage();
   await page.goto(SHOP);

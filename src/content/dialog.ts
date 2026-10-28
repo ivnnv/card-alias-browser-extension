@@ -39,6 +39,8 @@ interface Open {
 }
 
 let current: Open | null = null;
+/** An editor opened as a popup window from a sandboxed frame; it can still report a manual save. */
+let popup: { token: string; target: Element | null } | null = null;
 
 export function closeDialog(): void {
   if (current?.host.open) current.host.close();
@@ -64,7 +66,13 @@ function place({ frame, anchor }: Open): void {
 
 // The editor reaches us over extension messaging, which the page can't see or forge.
 chrome.runtime.onMessage.addListener((msg: EditorMessage) => {
-  if (msg?.source !== EDITOR_SOURCE || !current || msg.token !== current.token) return;
+  if (msg?.source !== EDITOR_SOURCE) return;
+  if (popup && msg.token === popup.token) {
+    if (msg.type === 'saved') annotateTarget(popup.target, msg.brand, msg.last4);
+    if (msg.type === 'close') popup = null;
+    return;
+  }
+  if (!current || msg.token !== current.token) return;
   if (msg.type === 'close') closeDialog();
   else if (msg.type === 'resize') {
     current.frame.style.height = `${msg.height}px`;
@@ -87,6 +95,13 @@ async function openEditor(
   modal: boolean,
 ): Promise<void> {
   closeDialog();
+  // A sandboxed frame has an opaque origin; an editor nested in it would inherit the sandbox
+  // and lose the extension APIs, so the background opens it as a popup window instead.
+  if (window.origin === 'null') {
+    const request: OpenEditorMessage = { type: OPEN_EDITOR, params, popup: true };
+    popup = { token: await chrome.runtime.sendMessage(request), target };
+    return;
+  }
   const container = (anchor ?? target)?.closest('dialog,[role=dialog],[aria-modal=true]') ?? document.documentElement;
   const host = document.createElement('dialog');
   host.setAttribute(UI_ATTR, 'dialog');
@@ -111,7 +126,7 @@ async function openEditor(
   frame.addEventListener('load', () => frame.focus());
 
   // The background mints a single-use session; the URL carries only its token.
-  const request: OpenEditorMessage = { type: OPEN_EDITOR, params };
+  const request: OpenEditorMessage = { type: OPEN_EDITOR, params, popup: false };
   const token: string = await chrome.runtime.sendMessage(request);
   if (current !== open) return;
   open.token = token;
