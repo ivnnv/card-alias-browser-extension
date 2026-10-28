@@ -1,0 +1,11 @@
+/** Creates an element, assigns its properties and appends its children. */
+export function h<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  props: Partial<HTMLElementTagNameMap[K]> = {},
+  ...children: (Node | string)[]
+): HTMLElementTagNameMap[K] {
+  const el = document.createElement(tag);
+  Object.assign(el, props);
+  el.append(...children);
+  return el;
+}

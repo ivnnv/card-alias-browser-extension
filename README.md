@@ -34,7 +34,15 @@ Card Alias finds masked card numbers on any page and marks them, so one click sh
 
 ## Privacy
 
-Card Alias stores only the card brand, the last four digits and the alias you type. It never reads form fields, never stores full card numbers and makes no network requests. Your data stays in `chrome.storage.sync`, so it syncs only through your own Chrome profile.
+Card Alias keeps everything in `chrome.storage.sync`:
+
+- each card's brand, last four digits (five for Amex), your alias and when you saved it,
+- the hostname of any site where you added a card by right-click,
+- your highlight colors.
+
+It never stores full card numbers, never reads form fields and makes no network requests of its own. Chrome sync carries the data between browsers signed in to your profile.
+
+The alias editor runs as a separate extension frame, so the sites you visit can't read what you type into it or see the aliases you saved. An end-to-end test checks this against a hostile page that records every keystroke, message and DOM change.
 
 ## Install
 

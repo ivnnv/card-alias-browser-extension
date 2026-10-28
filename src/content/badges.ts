@@ -98,7 +98,10 @@ function render(a: Annotation): void {
   const card = find(state.cards, a.brand, a.last4);
   a.button.textContent = card ? 'i' : '+';
   a.button.className = card ? 'known' : '';
-  a.button.title = card ? `Alias: ${card.alias}` : `Add alias for ${LABELS[a.brand]}:${a.last4}`;
+  // Never the alias itself: the page can read titles and labels.
+  a.button.title = card
+    ? `${LABELS[a.brand]}:${a.last4} has an alias, click to see it`
+    : `Add alias for ${LABELS[a.brand]}:${a.last4}`;
   a.button.setAttribute('aria-label', a.button.title);
   HL[card ? 'known' : 'new'].add(a.range);
   HL[card ? 'new' : 'known'].delete(a.range);

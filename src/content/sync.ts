@@ -1,6 +1,5 @@
 import { cardsFrom, colorsFrom, loadAll, rulesFrom } from '../shared/store.ts';
 import { paintAllBadges } from './badges.ts';
-import { paintDialog } from './dialog.ts';
 import { applyHighlightColors } from './highlights.ts';
 import { state } from './state.ts';
 
@@ -12,5 +11,4 @@ export async function refresh(): Promise<void> {
   state.colors = colorsFrom(all);
   applyHighlightColors(state.colors);
   paintAllBadges();
-  paintDialog();
 }

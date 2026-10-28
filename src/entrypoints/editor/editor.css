@@ -1,0 +1,141 @@
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+#editor {
+  position: relative;
+  box-sizing: border-box;
+  padding: 14px;
+  border-radius: 12px;
+  font:
+    14px/1.4 -apple-system,
+    system-ui,
+    sans-serif;
+  color: #111;
+  background: #fff;
+}
+
+h2 {
+  margin: 0 0 10px;
+  padding-right: 24px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.row > span {
+  flex: none;
+  color: #555;
+}
+
+input,
+select {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  color: inherit;
+  background: #fff;
+}
+
+input:disabled {
+  background: #e5e7eb;
+  border-color: transparent;
+  color: #4b5563;
+  -webkit-text-fill-color: #4b5563;
+  cursor: default;
+}
+
+input:not(:disabled):focus {
+  outline: none;
+  border-color: var(--ca-known);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ca-known) 30%, transparent);
+}
+
+button {
+  font: inherit;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #eee;
+  color: inherit;
+}
+
+button.primary {
+  background: var(--ca-known);
+  color: #fff;
+}
+
+button.armed {
+  background: #dc2626;
+  color: #fff;
+}
+
+.icon {
+  padding: 6px 8px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.msg {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #059669;
+}
+
+.msg.error {
+  color: #dc2626;
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  background: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  #editor {
+    color: #eee;
+    background: #1f1f22;
+  }
+
+  .row > span {
+    color: #aaa;
+  }
+
+  input,
+  select {
+    border-color: #444;
+    background: #2a2a2e;
+  }
+
+  input:disabled {
+    background: #111113;
+    border-color: transparent;
+    color: #a1a1aa;
+    -webkit-text-fill-color: #a1a1aa;
+  }
+
+  button {
+    background: #333;
+  }
+}

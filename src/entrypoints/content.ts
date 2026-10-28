@@ -12,6 +12,8 @@ export default defineContentScript({
   matchAboutBlank: true,
   matchOriginAsFallback: true,
   runAt: 'document_idle',
+  // WXT otherwise broadcasts a postMessage with our extension ID to every page.
+  noScriptStartedPostMessage: true,
   async main() {
     // Lets the local test fixture see that the extension is running; other sites never get the marker.
     if (/^(?:localhost|127\.0\.0\.1)$/.test(location.hostname)) {

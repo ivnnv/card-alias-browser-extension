@@ -1,10 +1,17 @@
-import { type Brand, LABELS } from '../shared/patterns.ts';
-import { addSiteRule, type Card, removeCard, removeSiteRule, saveCard, type SiteRule } from '../shared/store.ts';
-import { annotateTarget, renderAll } from './badges.ts';
+import {
+  EDITOR_SOURCE,
+  type EditorMessage,
+  type EditorParams,
+  OPEN_EDITOR,
+  type OpenEditorMessage,
+} from '../shared/editor.ts';
+import { h } from '../shared/h.ts';
+import type { Brand } from '../shared/patterns.ts';
+import type { Card, SiteRule } from '../shared/store.ts';
+import { annotateTarget } from './badges.ts';
 import dialogCss from './dialog.css?inline';
-import { h, isolate } from './dom.ts';
-import { state, UI_ATTR } from './state.ts';
-import { refresh } from './sync.ts';
+import { isolate } from './dom.ts';
+import { UI_ATTR } from './state.ts';
 
 const HOST_RESET: Record<string, string> = {
   position: 'fixed',
@@ -23,9 +30,17 @@ const HOST_RESET: Record<string, string> = {
   'color-scheme': 'normal',
 };
 
-let current: { host: HTMLDialogElement; panel: HTMLDivElement } | null = null;
+interface Open {
+  token: string | null;
+  host: HTMLDialogElement;
+  frame: HTMLIFrameElement;
+  anchor: Element | null;
+  target: Element | null;
+}
 
-const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
+let current: Open | null = null;
+/** An editor opened as a popup window from a sandboxed frame; it can still report a manual save. */
+let popup: { token: string; target: Element | null } | null = null;
 
 export function closeDialog(): void {
   if (current?.host.open) current.host.close();
@@ -33,24 +48,69 @@ export function closeDialog(): void {
   current = null;
 }
 
-export function paintDialog(): void {
-  current?.host.style.setProperty('--ca-known', state.colors.knownColor);
+function place({ frame, anchor }: Open): void {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const w = frame.offsetWidth;
+  const fh = frame.offsetHeight;
+  if (!anchor) {
+    frame.style.left = `${Math.max(8, (vw - w) / 2)}px`;
+    frame.style.top = `${Math.max(8, (vh - fh) / 3)}px`;
+    return;
+  }
+  const a = anchor.getBoundingClientRect();
+  const top = a.bottom + 8 + fh > vh ? a.top - 8 - fh : a.bottom + 8;
+  frame.style.left = `${Math.min(Math.max(8, a.left - 12), vw - w - 8)}px`;
+  frame.style.top = `${Math.max(8, top)}px`;
 }
 
-// A native modal <dialog> sits in the top layer, above page modals and clear of
-// their clipping. It is mounted inside the page's own modal when there is one,
-// so div-based focus traps still see focus as inside.
-function mountDialog(anchor: Element | null, modal: boolean): HTMLDivElement {
+// The editor reaches us over extension messaging, which the page can't see or forge.
+chrome.runtime.onMessage.addListener((msg: EditorMessage) => {
+  if (msg?.source !== EDITOR_SOURCE) return;
+  if (popup && msg.token === popup.token) {
+    if (msg.type === 'saved') annotateTarget(popup.target, msg.brand, msg.last4);
+    if (msg.type === 'close') popup = null;
+    return;
+  }
+  if (!current || msg.token !== current.token) return;
+  if (msg.type === 'close') closeDialog();
+  else if (msg.type === 'resize') {
+    current.frame.style.height = `${msg.height}px`;
+    place(current);
+  } else if (msg.type === 'saved') {
+    annotateTarget(current.target, msg.brand, msg.last4);
+  }
+});
+
+/**
+ * The form is an extension page in an iframe, so the visited page can't read
+ * keystrokes or the alias. A native modal <dialog> keeps it in the top layer,
+ * above page modals; it mounts inside the page's own modal when there is one,
+ * so div-based focus traps still see focus as inside.
+ */
+async function openEditor(
+  params: EditorParams,
+  anchor: Element | null,
+  target: Element | null,
+  modal: boolean,
+): Promise<void> {
   closeDialog();
-  const container = anchor?.closest('dialog,[role=dialog],[aria-modal=true]') ?? document.documentElement;
+  // A sandboxed frame has an opaque origin; an editor nested in it would inherit the sandbox
+  // and lose the extension APIs, so the background opens it as a popup window instead.
+  if (window.origin === 'null') {
+    const request: OpenEditorMessage = { type: OPEN_EDITOR, params, popup: true };
+    popup = { token: await chrome.runtime.sendMessage(request), target };
+    return;
+  }
+  const container = (anchor ?? target)?.closest('dialog,[role=dialog],[aria-modal=true]') ?? document.documentElement;
   const host = document.createElement('dialog');
   host.setAttribute(UI_ATTR, 'dialog');
   for (const [k, v] of Object.entries(HOST_RESET)) host.style.setProperty(k, v, 'important');
   const inner = document.createElement('card-alias-dialog');
   const shadow = inner.attachShadow({ mode: 'closed' });
   const layer = h('div', { className: `layer${modal ? ' modal' : ''}` });
-  const panel = h('div', { className: 'panel' });
-  shadow.append(h('style', { textContent: dialogCss }), layer, panel);
+  const frame = h('iframe', { title: 'Card Alias' });
+  shadow.append(h('style', { textContent: dialogCss }), layer, frame);
   host.append(inner);
   layer.addEventListener('click', closeDialog);
   host.addEventListener('cancel', (e) => {
@@ -60,104 +120,35 @@ function mountDialog(anchor: Element | null, modal: boolean): HTMLDivElement {
   isolate(host);
   container.append(host);
   host.showModal();
-  current = { host, panel };
-  paintDialog();
-  return panel;
+  const open: Open = { token: null, host, frame, anchor, target };
+  current = open;
+  place(open);
+  frame.addEventListener('load', () => frame.focus());
+
+  // The background mints a single-use session; the URL carries only its token.
+  const request: OpenEditorMessage = { type: OPEN_EDITOR, params, popup: false };
+  const token: string = await chrome.runtime.sendMessage(request);
+  if (current !== open) return;
+  open.token = token;
+  frame.src = `${chrome.runtime.getURL('/editor.html')}?t=${token}`;
 }
 
-function place(panel: HTMLElement, anchor: Element | null): void {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const w = panel.offsetWidth;
-  const ph = panel.offsetHeight;
-  if (!anchor) {
-    panel.style.left = `${Math.max(8, (vw - w) / 2)}px`;
-    panel.style.top = `${Math.max(8, (vh - ph) / 3)}px`;
-    return;
-  }
-  const a = anchor.getBoundingClientRect();
-  const top = a.bottom + 8 + ph > vh ? a.top - 8 - ph : a.bottom + 8;
-  panel.style.left = `${Math.min(Math.max(8, a.left - 12), vw - w - 8)}px`;
-  panel.style.top = `${Math.max(8, top)}px`;
-}
-
-function showMsg(el: HTMLElement, text: string, error = false): void {
-  el.textContent = text;
-  el.className = `msg${error ? ' error' : ''}`;
-}
-
-const closeButton = () => h('button', { className: 'close', textContent: '×', title: 'Close', onclick: closeDialog });
-
-/** Saved alias: read-only until ✏️, with a two-click delete. */
-/** `shown` is what the badge matched, which can differ from the saved card when one side is a generic "card". */
+/** Saved alias, opened from an `i` badge. `shown` is what the badge matched. */
 export function openInfo(card: Card, anchor: Element, shown: SiteRule): void {
-  const panel = mountDialog(anchor, false);
-  const input = h('input', { value: card.alias, disabled: true, maxLength: 60 });
-  input.setAttribute('aria-label', 'Alias');
-  const edit = h('button', { className: 'icon', textContent: '✏️', title: 'Edit alias' });
-  const remove = h('button', { className: 'icon', textContent: '🗑', title: 'Delete alias' });
-  const msg = h('div', { className: 'msg' });
-  let editing = false;
-
-  const setEditing = (on: boolean) => {
-    editing = on;
-    input.disabled = !on;
-    edit.textContent = on ? '💾' : '✏️';
-    edit.title = on ? 'Save alias' : 'Edit alias';
-    if (on) {
-      input.focus();
-      input.select();
-    }
-  };
-
-  const save = async () => {
-    const alias = input.value.trim();
-    if (!alias) return showMsg(msg, 'Alias cannot be empty', true);
-    try {
-      await saveCard(card.brand, card.last4, alias);
-      card.alias = alias;
-      setEditing(false);
-      showMsg(msg, 'Saved');
-    } catch (err) {
-      showMsg(msg, `Could not save: ${errorText(err)}`, true);
-    }
-  };
-
-  edit.addEventListener('click', () => (editing ? save() : setEditing(true)));
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') void save();
-    if (e.key === 'Escape' && editing) {
-      e.preventDefault();
-      input.value = card.alias;
-      setEditing(false);
-    }
-  });
-
-  remove.addEventListener('click', async () => {
-    if (!remove.classList.contains('armed')) {
-      remove.classList.add('armed');
-      remove.textContent = 'Delete?';
-      return;
-    }
-    try {
-      await removeCard(card.brand, card.last4);
-      await removeSiteRule(location.hostname, card.brand, card.last4);
-      await removeSiteRule(location.hostname, shown.brand, shown.last4);
-      await refresh();
-      renderAll();
-      closeDialog();
-    } catch (err) {
-      showMsg(msg, `Could not delete: ${errorText(err)}`, true);
-    }
-  });
-
-  panel.append(
-    closeButton(),
-    h('h2', { textContent: `${LABELS[card.brand]} •••• ${card.last4}` }),
-    h('div', { className: 'row' }, h('span', { textContent: 'Alias:' }), input, edit, remove),
-    msg,
+  void openEditor(
+    {
+      mode: 'info',
+      brand: card.brand,
+      last4: card.last4,
+      host: location.hostname,
+      manual: false,
+      shownBrand: shown.brand,
+      shownLast4: shown.last4,
+    },
+    anchor,
+    null,
+    false,
   );
-  place(panel, anchor);
 }
 
 interface AddOptions {
@@ -170,58 +161,10 @@ interface AddOptions {
 }
 
 export function openAdd({ brand, last4, anchor = null, manual = false, target = null }: AddOptions): void {
-  const panel = mountDialog(anchor ?? target, true);
-  const title = h('h2');
-  const brandSelect = h('select');
-  for (const [value, text] of Object.entries(LABELS)) brandSelect.append(h('option', { value, textContent: text }));
-  brandSelect.value = brand;
-  const digits = h('input', { value: last4, maxLength: 5, inputMode: 'numeric', placeholder: '2071' });
-  const alias = h('input', { maxLength: 60, placeholder: 'e.g. Revolut personal' });
-  alias.setAttribute('aria-label', 'Alias');
-  const msg = h('div', { className: 'msg' });
-  const saveBtn = h('button', { className: 'primary', textContent: 'Save' });
-
-  const chosen = () => ({ brand: brandSelect.value as Brand, last4: digits.value.trim() });
-  const updateTitle = () => {
-    const c = chosen();
-    title.textContent = `Add Card Alias for ${LABELS[c.brand]}:${c.last4 || '????'}`;
-  };
-  brandSelect.addEventListener('change', updateTitle);
-  digits.addEventListener('input', updateTitle);
-  updateTitle();
-
-  const save = async () => {
-    const c = chosen();
-    const value = alias.value.trim();
-    if (!/^\d{4,5}$/.test(c.last4)) return showMsg(msg, 'Last digits must be 4 or 5 numbers', true);
-    if (!value) return showMsg(msg, 'Alias cannot be empty', true);
-    saveBtn.disabled = true;
-    try {
-      await saveCard(c.brand, c.last4, value);
-      if (manual) {
-        await addSiteRule(location.hostname, c.brand, c.last4);
-        annotateTarget(target, c.brand, c.last4);
-      }
-      await refresh();
-      renderAll();
-      showMsg(msg, `Alias for ${LABELS[c.brand]}:${c.last4} saved`);
-      setTimeout(closeDialog, 1200);
-    } catch (err) {
-      saveBtn.disabled = false;
-      showMsg(msg, `Could not save: ${errorText(err)}`, true);
-    }
-  };
-  saveBtn.addEventListener('click', save);
-  alias.addEventListener('keydown', (e) => e.key === 'Enter' && void save());
-
-  panel.append(
-    closeButton(),
-    title,
-    ...(manual ? [h('div', { className: 'row' }, brandSelect, digits)] : []),
-    h('div', { className: 'row' }, h('span', { textContent: 'Alias:' }), alias),
-    msg,
-    h('div', { className: 'actions' }, h('button', { textContent: 'Cancel', onclick: closeDialog }), saveBtn),
+  void openEditor(
+    { mode: 'add', brand, last4, host: location.hostname, manual, shownBrand: brand, shownLast4: last4 },
+    null,
+    target ?? anchor,
+    true,
   );
-  place(panel, null);
-  (manual && !last4 ? digits : alias).focus();
 }
