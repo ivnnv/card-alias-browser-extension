@@ -13,8 +13,10 @@ export default defineContentScript({
   matchOriginAsFallback: true,
   runAt: 'document_idle',
   async main() {
-    // Lets pages (the test fixture) see that the extension is running.
-    document.documentElement.setAttribute('data-card-alias', 'active');
+    // Lets the local test fixture see that the extension is running; other sites never get the marker.
+    if (/^(?:localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+      document.documentElement.setAttribute('data-card-alias', 'active');
+    }
     listenForContextMenu();
 
     chrome.storage.onChanged.addListener(async (changes, area) => {

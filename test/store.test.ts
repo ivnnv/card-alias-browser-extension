@@ -25,6 +25,10 @@ test('drops malformed entries and keeps the rest', () => {
   assert.deepEqual(Object.keys(importable(data)), ['card:visa:2071']);
 });
 
+test('rejects inherited object keys as brands', () => {
+  assert.deepEqual(importable({ 'card:constructor:2071': { brand: 'constructor', last4: '2071', alias: 'x' } }), {});
+});
+
 test('rejects files that are not objects', () => {
   assert.deepEqual(importable(null), {});
   assert.deepEqual(importable([1, 2]), {});

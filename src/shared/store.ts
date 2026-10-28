@@ -38,7 +38,7 @@ export function rulesFrom(all: StoredData, host: string): SiteRule[] {
   return Array.isArray(rules) ? rules.filter(isSiteRule) : [];
 }
 
-const isBrand = (v: unknown): v is Brand => typeof v === 'string' && v in LABELS;
+const isBrand = (v: unknown): v is Brand => typeof v === 'string' && Object.hasOwn(LABELS, v);
 const isLast4 = (v: unknown): v is string => typeof v === 'string' && /^\d{4,5}$/.test(v);
 const isHex = (v: unknown): v is string => typeof v === 'string' && /^#[\da-f]{6}$/i.test(v);
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;

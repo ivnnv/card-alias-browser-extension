@@ -107,6 +107,8 @@ $('export').addEventListener('click', async () => {
   URL.revokeObjectURL(a.href);
 });
 
+$('import-button').addEventListener('click', () => $('import').click());
+
 $('import').addEventListener('change', async (e) => {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
