@@ -51,7 +51,7 @@ Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpack
 
 ## Development
 
-You need [Bun](https://bun.sh) 1.4+. `bun dev` also uses Node 24+ to launch Chrome.
+You need [Bun](https://bun.sh) 1.4+. Nothing else.
 
 ```sh
 bun install
