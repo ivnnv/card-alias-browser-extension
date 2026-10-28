@@ -21,7 +21,7 @@ const annotated = new Map<Element, Annotation>();
 const HOST_STYLE: Record<string, string> = {
   display: 'inline-block',
   'vertical-align': 'middle',
-  margin: '0 0 0 6px',
+  margin: '0 0 0 3px',
   'line-height': '0',
   position: 'relative',
 };
