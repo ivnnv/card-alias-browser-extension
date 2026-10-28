@@ -43,7 +43,11 @@ Card Alias keeps everything in `chrome.storage.sync`:
 - the hostname of any site where you added a card by right-click,
 - your highlight colors.
 
-It never stores full card numbers, never reads form fields and makes no network requests of its own. Chrome sync carries the data between browsers signed in to your profile.
+It never stores full card numbers and never reads form fields.
+
+**Where your data goes:** only to your own Google account, through Chrome sync. Card Alias makes no network requests of its own, has no servers, analytics or trackers, and never sends anything to the developer or anyone else.
+
+That sync is the only reason the Chrome Web Store listing declares "Financial and payment info": the card brand and last four digits leave your device, but only to your own Google account. Turn off Chrome sync for extensions and the data stays on your device.
 
 The alias editor runs as a separate extension frame, so the sites you visit can't read what you type into it or see the aliases you saved. An end-to-end test checks this against a hostile page that records every keystroke, message and DOM change.
 
