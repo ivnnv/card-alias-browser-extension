@@ -10,6 +10,7 @@ interface Annotation {
   el: Element;
   host: HTMLElement;
   button: HTMLButtonElement;
+  tip: HTMLSpanElement;
   brand: Brand;
   last4: string;
   /** Added by right-click; lives only as long as its site rule. */
@@ -69,9 +70,25 @@ export function annotate(
   style.textContent = badgeCss;
   const button = document.createElement('button');
   button.type = 'button';
-  shadow.append(style, button);
+  // Instant replacement for the slow native title tooltip. It lives in the closed
+  // shadow root, so page scripts can't read the alias from it.
+  const tip = document.createElement('span');
+  tip.className = 'tip';
+  // The button's aria-label already says it; this is the visual copy only.
+  tip.setAttribute('aria-hidden', 'true');
+  shadow.append(style, button, tip);
+  const showTip = () => {
+    const r = button.getBoundingClientRect();
+    tip.style.left = `${r.left + r.width / 2}px`;
+    tip.style.top = `${r.top - 6}px`;
+    tip.classList.add('show');
+  };
+  const hideTip = () => tip.classList.remove('show');
+  button.addEventListener('pointerenter', showTip);
+  button.addEventListener('focus', showTip);
+  for (const type of ['pointerleave', 'blur', 'click']) button.addEventListener(type, hideTip);
 
-  const a: Annotation = { el, host, button, brand, last4, manual, range };
+  const a: Annotation = { el, host, button, tip, brand, last4, manual, range };
   button.addEventListener('click', (e) => {
     e.preventDefault();
     const card = find(state.cards, a.brand, a.last4);
@@ -98,11 +115,9 @@ function render(a: Annotation): void {
   const card = find(state.cards, a.brand, a.last4);
   a.button.textContent = card ? 'i' : '+';
   a.button.className = card ? 'known' : '';
-  // Never the alias itself: the page can read titles and labels.
-  a.button.title = card
-    ? `${LABELS[a.brand]}:${a.last4} has an alias, click to see it`
-    : `Add alias for ${LABELS[a.brand]}:${a.last4}`;
-  a.button.setAttribute('aria-label', a.button.title);
+  // No native title: it is slow to appear and lives where the page can read it.
+  a.tip.textContent = card ? card.alias : `Add alias for ${LABELS[a.brand]}:${a.last4}`;
+  a.button.setAttribute('aria-label', card ? `Alias: ${card.alias}` : a.tip.textContent);
   HL[card ? 'known' : 'new'].add(a.range);
   HL[card ? 'new' : 'known'].delete(a.range);
 }
