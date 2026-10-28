@@ -11,20 +11,10 @@ import {
   saveColors,
   type SiteRule,
 } from '../../shared/store.ts';
+import { h as el } from '../../shared/h.ts';
 import './options.css';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  props: Partial<HTMLElementTagNameMap[K]> = {},
-  ...children: (Node | string)[]
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  Object.assign(node, props);
-  node.append(...children);
-  return node;
-}
 
 const label = (brand: Brand) => LABELS[brand] ?? brand;
 

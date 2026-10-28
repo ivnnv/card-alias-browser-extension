@@ -112,14 +112,3 @@ export function hintsOf(row: Element): { labels: string; brandHints: string } {
 export function isolate(host: Element): void {
   for (const type of ISOLATED_EVENTS) host.addEventListener(type, (e) => e.stopPropagation());
 }
-
-export function h<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  props: Partial<HTMLElementTagNameMap[K]> = {},
-  ...children: (Node | string)[]
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  Object.assign(el, props);
-  el.append(...children);
-  return el;
-}
