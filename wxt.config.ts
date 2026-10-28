@@ -13,7 +13,7 @@ export default defineConfig({
     permissions: ['storage', 'contextMenus'],
     action: { default_title: 'Card Alias: manage aliases', default_icon: { 16: icons[16], 32: icons[32] } },
     // The alias editor is framed into pages so they can't read what is typed.
-    web_accessible_resources: [{ resources: ['editor.html'], matches: ['<all_urls>'] }],
+    web_accessible_resources: [{ resources: ['editor.html'], matches: ['<all_urls>'], use_dynamic_url: true }],
   },
   webExt: {
     // `bun dev` opens a fresh Chrome profile on the test page (served by `bun fixture`).

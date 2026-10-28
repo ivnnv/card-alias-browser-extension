@@ -1,6 +1,6 @@
 {
   "name": "card-alias-browser-extension",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "private": true,
   "description": "Chrome extension that shows your own aliases next to masked card numbers like •••• 2071",
   "license": "MIT",

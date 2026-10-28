@@ -2,17 +2,21 @@ import type { Brand } from './patterns.ts';
 
 /**
  * The alias editor runs as an extension page in an iframe, so the visited page
- * never sees what is typed. These are the only messages it sends to the page's
- * content script, and none of them carries the alias.
+ * never sees what is typed. Each editor is a single-use session the background
+ * worker mints for a content script; a page that frames editor.html by itself
+ * gets no session and the editor renders nothing. The editor talks back over
+ * extension messaging, which the page can't observe.
  */
 export const EDITOR_SOURCE = 'card-alias-editor';
+export const OPEN_EDITOR = 'card-alias:open-editor';
+export const SESSION_TTL_MS = 10 * 60_000;
 
 export type EditorPayload =
   | { type: 'close' }
   | { type: 'resize'; height: number }
   | { type: 'saved'; brand: Brand; last4: string };
 
-export type EditorMessage = EditorPayload & { source: typeof EDITOR_SOURCE };
+export type EditorMessage = EditorPayload & { source: typeof EDITOR_SOURCE; token: string };
 
 export interface EditorParams {
   mode: 'add' | 'info';
@@ -26,30 +30,16 @@ export interface EditorParams {
   shownLast4: string;
 }
 
-export function editorUrl(base: string, p: EditorParams): string {
-  const query = new URLSearchParams({
-    mode: p.mode,
-    brand: p.brand,
-    last4: p.last4,
-    host: p.host,
-    manual: p.manual ? '1' : '',
-    shownBrand: p.shownBrand,
-    shownLast4: p.shownLast4,
-  });
-  return `${base}?${query}`;
+export interface OpenEditorMessage {
+  type: typeof OPEN_EDITOR;
+  params: EditorParams;
 }
 
-export function readEditorParams(search: string): EditorParams {
-  const q = new URLSearchParams(search);
-  const brand = (q.get('brand') ?? 'card') as Brand;
-  const last4 = q.get('last4') ?? '';
-  return {
-    mode: q.get('mode') === 'info' ? 'info' : 'add',
-    brand,
-    last4,
-    host: q.get('host') ?? '',
-    manual: q.get('manual') === '1',
-    shownBrand: (q.get('shownBrand') as Brand | null) ?? brand,
-    shownLast4: q.get('shownLast4') ?? last4,
-  };
+export interface EditorSession {
+  params: EditorParams;
+  tabId: number;
+  frameId: number;
+  expires: number;
 }
+
+export const sessionKey = (token: string) => `editor:${token}`;

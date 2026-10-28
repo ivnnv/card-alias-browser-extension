@@ -35,7 +35,12 @@ test.beforeAll(async () => {
     args: [`--disable-extensions-except=${EXTENSION}`, `--load-extension=${EXTENSION}`],
   });
   await context.route('http://hostile-shop.test/**', (route) =>
-    route.fulfill({ contentType: 'text/html; charset=utf-8', body: HOSTILE_PAGE }),
+    route.fulfill({
+      contentType: 'text/html; charset=utf-8',
+      // A strict frame policy must not block our editor; Chrome exempts extension frames.
+      headers: { 'Content-Security-Policy': "frame-src 'self'; child-src 'self'" },
+      body: HOSTILE_PAGE,
+    }),
   );
 });
 
@@ -79,6 +84,44 @@ test('a hostile page cannot read an alias while it is typed, saved or shown', as
   await expect(info.getByLabel('Alias')).toHaveValue(ALIAS);
 
   expect(await pageSaw(page, ALIAS)).toEqual([]);
+  // The editor talks to the content script over extension messaging, never through the page.
+  expect(
+    await page.evaluate(() => (window as unknown as { leaks: string[] }).leaks.filter((l) => l.startsWith('message:'))),
+  ).toEqual([]);
+});
+
+test('a page that frames the editor itself gets an empty, silent frame', async () => {
+  const [worker] = context.serviceWorkers();
+  const before = await worker!.evaluate(() => chrome.storage.sync.get(null));
+  const extensionId = new URL(worker!.url()).host;
+  // Even the real per-session URL is useless without a token minted for this tab.
+  const dynamicUrl = await worker!.evaluate(() => chrome.runtime.getURL('/editor.html'));
+  const page = await context.newPage();
+  await page.goto(SHOP);
+
+  await page.evaluate(
+    (urls) => {
+      for (const url of urls) {
+        const frame = document.createElement('iframe');
+        frame.src = url;
+        document.body.append(frame);
+      }
+    },
+    [`chrome-extension://${extensionId}/editor.html?t=forged`, `${dynamicUrl}?t=forged`],
+  );
+  await page.waitForTimeout(1500);
+
+  const rendered = await Promise.all(
+    page
+      .frames()
+      .filter((f) => f.url().includes('/editor.html'))
+      .map((f) => f.evaluate(() => document.getElementById('editor')?.childElementCount ?? 0).catch(() => 0)),
+  );
+  expect(rendered.every((count) => count === 0)).toBe(true);
+  expect(
+    await page.evaluate(() => (window as unknown as { leaks: string[] }).leaks.filter((l) => l.startsWith('message:'))),
+  ).toEqual([]);
+  expect(await worker!.evaluate(() => chrome.storage.sync.get(null))).toEqual(before);
 });
 
 test('control: the same spy does catch text typed into the page itself', async () => {

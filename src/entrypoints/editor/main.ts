@@ -1,4 +1,10 @@
-import { EDITOR_SOURCE, type EditorPayload, readEditorParams } from '../../shared/editor.ts';
+import {
+  EDITOR_SOURCE,
+  type EditorParams,
+  type EditorPayload,
+  type EditorSession,
+  sessionKey,
+} from '../../shared/editor.ts';
 import { h } from '../../shared/h.ts';
 import { type Brand, LABELS } from '../../shared/patterns.ts';
 import {
@@ -13,12 +19,15 @@ import {
 } from '../../shared/store.ts';
 import './editor.css';
 
-const params = readEditorParams(location.search);
+const token = new URLSearchParams(location.search).get('t') ?? '';
 const root = document.getElementById('editor')!;
+let session!: EditorSession;
+let params!: EditorParams;
 
 function post(message: EditorPayload): void {
-  // '*' because the parent is whatever site the user is on; no message carries the alias.
-  parent.postMessage({ source: EDITOR_SOURCE, ...message }, '*');
+  chrome.tabs
+    .sendMessage(session.tabId, { source: EDITOR_SOURCE, token, ...message }, { frameId: session.frameId })
+    .catch(() => {});
 }
 
 const close = () => post({ type: 'close' });
@@ -151,13 +160,26 @@ function renderAdd(): void {
   (params.manual && !params.last4 ? digits : alias).focus();
 }
 
-document.addEventListener('keydown', (e) => e.key === 'Escape' && close());
-new ResizeObserver(() => post({ type: 'resize', height: Math.ceil(root.getBoundingClientRect().height) })).observe(
-  root,
-);
+/** Single use: a reload or a copied URL finds nothing and renders nothing. */
+async function claimSession(): Promise<EditorSession | null> {
+  if (!token) return null;
+  const key = sessionKey(token);
+  const found = (await chrome.storage.session.get(key))[key] as EditorSession | undefined;
+  await chrome.storage.session.remove(key);
+  return found && found.expires > Date.now() ? found : null;
+}
 
-const all = await loadAll();
-document.documentElement.style.setProperty('--ca-known', colorsFrom(all).knownColor);
-const card = params.mode === 'info' ? find(cardsFrom(all), params.brand, params.last4) : null;
-if (card) renderInfo(card.alias, card.brand, card.last4);
-else renderAdd();
+const claimed = await claimSession();
+if (claimed) {
+  session = claimed;
+  params = claimed.params;
+  document.addEventListener('keydown', (e) => e.key === 'Escape' && close());
+  new ResizeObserver(() => post({ type: 'resize', height: Math.ceil(root.getBoundingClientRect().height) })).observe(
+    root,
+  );
+  const all = await loadAll();
+  document.documentElement.style.setProperty('--ca-known', colorsFrom(all).knownColor);
+  const card = params.mode === 'info' ? find(cardsFrom(all), params.brand, params.last4) : null;
+  if (card) renderInfo(card.alias, card.brand, card.last4);
+  else renderAdd();
+}

@@ -1,4 +1,10 @@
-import { EDITOR_SOURCE, type EditorMessage, type EditorParams, editorUrl } from '../shared/editor.ts';
+import {
+  EDITOR_SOURCE,
+  type EditorMessage,
+  type EditorParams,
+  OPEN_EDITOR,
+  type OpenEditorMessage,
+} from '../shared/editor.ts';
 import { h } from '../shared/h.ts';
 import type { Brand } from '../shared/patterns.ts';
 import type { Card, SiteRule } from '../shared/store.ts';
@@ -25,6 +31,7 @@ const HOST_RESET: Record<string, string> = {
 };
 
 interface Open {
+  token: string | null;
   host: HTMLDialogElement;
   frame: HTMLIFrameElement;
   anchor: Element | null;
@@ -55,15 +62,15 @@ function place({ frame, anchor }: Open): void {
   frame.style.top = `${Math.max(8, top)}px`;
 }
 
-// Only our own editor frame may drive the dialog; the page can post look-alike messages.
-window.addEventListener('message', (e: MessageEvent<EditorMessage>) => {
-  if (!current || e.source !== current.frame.contentWindow || e.data?.source !== EDITOR_SOURCE) return;
-  if (e.data.type === 'close') closeDialog();
-  else if (e.data.type === 'resize') {
-    current.frame.style.height = `${e.data.height}px`;
+// The editor reaches us over extension messaging, which the page can't see or forge.
+chrome.runtime.onMessage.addListener((msg: EditorMessage) => {
+  if (msg?.source !== EDITOR_SOURCE || !current || msg.token !== current.token) return;
+  if (msg.type === 'close') closeDialog();
+  else if (msg.type === 'resize') {
+    current.frame.style.height = `${msg.height}px`;
     place(current);
-  } else if (e.data.type === 'saved') {
-    annotateTarget(current.target, e.data.brand, e.data.last4);
+  } else if (msg.type === 'saved') {
+    annotateTarget(current.target, msg.brand, msg.last4);
   }
 });
 
@@ -73,7 +80,12 @@ window.addEventListener('message', (e: MessageEvent<EditorMessage>) => {
  * above page modals; it mounts inside the page's own modal when there is one,
  * so div-based focus traps still see focus as inside.
  */
-function openEditor(params: EditorParams, anchor: Element | null, target: Element | null, modal: boolean): void {
+async function openEditor(
+  params: EditorParams,
+  anchor: Element | null,
+  target: Element | null,
+  modal: boolean,
+): Promise<void> {
   closeDialog();
   const container = (anchor ?? target)?.closest('dialog,[role=dialog],[aria-modal=true]') ?? document.documentElement;
   const host = document.createElement('dialog');
@@ -82,7 +94,7 @@ function openEditor(params: EditorParams, anchor: Element | null, target: Elemen
   const inner = document.createElement('card-alias-dialog');
   const shadow = inner.attachShadow({ mode: 'closed' });
   const layer = h('div', { className: `layer${modal ? ' modal' : ''}` });
-  const frame = h('iframe', { src: editorUrl(chrome.runtime.getURL('/editor.html'), params), title: 'Card Alias' });
+  const frame = h('iframe', { title: 'Card Alias' });
   shadow.append(h('style', { textContent: dialogCss }), layer, frame);
   host.append(inner);
   layer.addEventListener('click', closeDialog);
@@ -93,14 +105,22 @@ function openEditor(params: EditorParams, anchor: Element | null, target: Elemen
   isolate(host);
   container.append(host);
   host.showModal();
-  current = { host, frame, anchor, target };
-  place(current);
+  const open: Open = { token: null, host, frame, anchor, target };
+  current = open;
+  place(open);
   frame.addEventListener('load', () => frame.focus());
+
+  // The background mints a single-use session; the URL carries only its token.
+  const request: OpenEditorMessage = { type: OPEN_EDITOR, params };
+  const token: string = await chrome.runtime.sendMessage(request);
+  if (current !== open) return;
+  open.token = token;
+  frame.src = `${chrome.runtime.getURL('/editor.html')}?t=${token}`;
 }
 
 /** Saved alias, opened from an `i` badge. `shown` is what the badge matched. */
 export function openInfo(card: Card, anchor: Element, shown: SiteRule): void {
-  openEditor(
+  void openEditor(
     {
       mode: 'info',
       brand: card.brand,
@@ -126,7 +146,7 @@ interface AddOptions {
 }
 
 export function openAdd({ brand, last4, anchor = null, manual = false, target = null }: AddOptions): void {
-  openEditor(
+  void openEditor(
     { mode: 'add', brand, last4, host: location.hostname, manual, shownBrand: brand, shownLast4: last4 },
     null,
     target ?? anchor,
