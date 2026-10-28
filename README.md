@@ -10,6 +10,8 @@
 
 <p align="center">
   <a href="#install"><img alt="Chrome Web Store: coming soon" src="https://img.shields.io/badge/Chrome%20Web%20Store-coming%20soon-lightgrey?logo=googlechrome&logoColor=white" /></a>
+  <a href="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/codeql.yml/badge.svg" /></a>
   <img alt="Manifest V3" src="https://img.shields.io/badge/manifest-v3-3b82f6" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white" />
 </p>
@@ -43,6 +45,16 @@ Card Alias keeps everything in `chrome.storage.sync`:
 It never stores full card numbers, never reads form fields and makes no network requests of its own. Chrome sync carries the data between browsers signed in to your profile.
 
 The alias editor runs as a separate extension frame, so the sites you visit can't read what you type into it or see the aliases you saved. An end-to-end test checks this against a hostile page that records every keystroke, message and DOM change.
+
+## Security
+
+Report vulnerabilities privately, as described in [SECURITY.md](.github/SECURITY.md).
+
+Every release zip is built by CI from a tagged commit, with a SHA-256 checksum and signed build provenance. To check that a zip came from this repository:
+
+```sh
+gh attestation verify card-alias-browser-extension-<version>-chrome.zip --repo ivnnv/card-alias-browser-extension
+```
 
 ## Install
 
