@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Card Alias</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Card Alias</h1>
+      <p class="sub">Aliases sync through your Chrome profile. Only the brand, the last digits and your alias are stored.</p>
+
+      <section>
+        <h2>Cards</h2>
+        <ul id="cards"></ul>
+        <p id="empty" class="sub" hidden>No aliases yet. Click a <b>+</b> badge next to a card number, or right-click one and pick "Add card alias…".</p>
+      </section>
+
+      <section>
+        <h2>Sites with manual cards</h2>
+        <ul id="sites"></ul>
+        <p id="no-sites" class="sub" hidden>None.</p>
+      </section>
+
+      <section class="actions">
+        <button id="export">Export JSON</button>
+        <label class="button">Import JSON<input id="import" type="file" accept="application/json" hidden /></label>
+        <span id="status" class="sub"></span>
+      </section>
+    </main>
+    <script src="../src/patterns.js"></script>
+    <script src="../src/store.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

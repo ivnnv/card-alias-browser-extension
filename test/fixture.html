@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Card Alias fixture</title>
+    <link rel="stylesheet" href="../src/content.css" />
+    <style>
+      :root {
+        --bg: #eef0f4;
+        --ink: #14161a;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --accent: #4f46e5;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 40px 24px 80px;
+        font: 14px/1.45 -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+        color: var(--ink);
+        background: radial-gradient(1200px 600px at 10% -10%, #dfe3ff 0%, transparent 60%), var(--bg);
+      }
+      header { max-width: 1120px; margin: 0 auto 28px; }
+      header h1 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
+      header p { margin: 4px 0 0; color: var(--muted); }
+      .grid { max-width: 1120px; margin: 0 auto; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+      .tag { display: inline-block; margin-bottom: 10px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); background: rgba(0,0,0,.05); }
+
+      /* brand chips */
+      .chip { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 28px; border-radius: 6px; font: 800 11px/1 system-ui; letter-spacing: .02em; }
+      .chip.visa { background: #1a1f71; color: #fff; font-style: italic; font-size: 12px; }
+      .chip.mc { background: #111; position: relative; }
+      .chip.mc::before, .chip.mc::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; top: 6px; }
+      .chip.mc::before { left: 8px; background: #eb001b; }
+      .chip.mc::after { left: 18px; background: #f79e1b; mix-blend-mode: screen; }
+      .chip.amex { background: #2e77bc; color: #fff; font-size: 9px; }
+      .chip.generic { background: #3a3a3f; }
+      .chip.generic::before { content: ''; width: 22px; height: 4px; background: #6b6b70; border-radius: 2px; }
+
+      /* 1. dark SaaS modal (the original screenshot) */
+      .saas { background: linear-gradient(160deg, #26262b, #18181b); color: #f4f4f5; border-radius: 22px; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+      .saas .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+      .saas .top h2 { margin: 0; font-size: 16px; }
+      .saas .round { width: 30px; height: 30px; border-radius: 50%; background: #333338; display: grid; place-items: center; color: #aaa; }
+      .saas .hint { color: #8b8b93; margin: 0 0 8px 4px; }
+      .saas .list { background: #2c2c31; border-radius: 16px; overflow: hidden; }
+      .method { all: unset; box-sizing: border-box; display: flex; gap: 14px; align-items: center; width: 100%; padding: 12px 16px; cursor: pointer; }
+      .method + .method { border-top: 1px solid #3a3a40; }
+      .method:hover { background: #333339; }
+      .method .name { font-weight: 500; }
+      .method .num { display: block; color: #a1a1aa; font-size: 13px; }
+      .method .check { margin-left: auto; color: #fff; }
+      .saas .add { margin-top: 14px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 16px; background: #2c2c31; color: #e4e4e7; }
+
+      /* 2. light checkout */
+      .checkout { background: #fff; border-radius: 18px; padding: 22px; box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 12px 32px rgba(17,24,39,.08); }
+      .checkout h2 { margin: 0 0 4px; font-size: 18px; }
+      .checkout .total { display: flex; justify-content: space-between; padding: 12px 0; margin-bottom: 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+      .checkout .total b { color: var(--ink); font-size: 18px; }
+      .pay-option { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; cursor: pointer; }
+      .pay-option:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.12); }
+      .pay-option input { accent-color: var(--accent); }
+      .pay-option small { display: block; color: var(--muted); }
+      .loading { color: var(--muted); padding: 12px 0; }
+      .btn { all: unset; box-sizing: border-box; display: block; width: 100%; margin-top: 14px; padding: 12px; border-radius: 12px; text-align: center; font-weight: 600; color: #fff; background: var(--accent); cursor: pointer; }
+      .btn.ghost { color: var(--accent); background: rgba(79,70,229,.08); }
+
+      /* 3. Spanish bank */
+      .bank { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 32px rgba(17,24,39,.08); }
+      .bank .bar { padding: 16px 20px; color: #fff; background: linear-gradient(90deg, #004d40, #00796b); display: flex; justify-content: space-between; align-items: center; }
+      .bank .bar b { font-size: 16px; }
+      .bank .body { padding: 18px 20px; }
+      .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .tile { border-radius: 14px; padding: 14px; color: #fff; min-height: 110px; display: flex; flex-direction: column; justify-content: space-between; }
+      .tile.a { background: linear-gradient(135deg, #0f766e, #134e4a); }
+      .tile.b { background: linear-gradient(135deg, #7c3aed, #4c1d95); }
+      .tile small { opacity: .8; }
+      .tile .n { font-size: 15px; letter-spacing: .08em; }
+      .bank ul { list-style: none; margin: 16px 0 0; padding: 0; }
+      .bank li { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); }
+      .bank li span:last-child { color: var(--muted); }
+
+      /* 4. receipts + wallet widget */
+      .receipts { background: #fff; border-radius: 18px; padding: 22px; box-shadow: 0 12px 32px rgba(17,24,39,.08); }
+      .receipts h2 { margin: 0 0 12px; font-size: 18px; }
+      .receipt { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+      .receipt small { color: var(--muted); }
+      .receipt .amt { font-weight: 600; white-space: nowrap; }
+      #shadow-host { display: block; margin-top: 16px; }
+
+      dialog#dlg { width: 380px; border: 0; padding: 18px; border-radius: 22px; color: #f4f4f5; background: #1f1f23; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+      dialog#dlg::backdrop { background: rgba(10,10,20,.55); backdrop-filter: blur(3px); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Card Alias fixture</h1>
+      <p>Made-up checkouts for testing detection. Decoys are marked and must stay without a badge.</p>
+    </header>
+
+    <div class="grid">
+      <!-- 1 -->
+      <section>
+        <span class="tag">SaaS · payment methods</span>
+        <div class="saas">
+          <div class="top"><span class="round">···</span><h2>Payment methods</h2><span class="round">✕</span></div>
+          <p class="hint">Select how you want to pay</p>
+          <div class="list" id="methods">
+            <button class="method" onclick="window.selected = 2071"><span class="chip visa" role="img" aria-label="Visa">VISA</span><span><span class="name">Visa Debit</span><span class="num">•••• 2071</span></span><span class="check">✓</span></button>
+            <button class="method" onclick="window.selected = 5896"><span class="chip generic" role="img" aria-label="Card"></span><span><span class="name">Card</span><span class="num">•••• 5896</span></span></button>
+            <button class="method" onclick="window.selected = 9357"><span class="chip visa" role="img" aria-label="Visa">VISA</span><span><span class="name">Visa Debit</span><span class="num">•••• 9357</span></span></button>
+          </div>
+          <div class="add">▭ <span>Add a card</span></div>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section>
+        <span class="tag">Store · checkout (loads late)</span>
+        <div class="checkout">
+          <h2>Checkout</h2>
+          <div class="total"><span>Total due today</span><b>€49.00</b></div>
+          <div id="saved"><div class="loading">Loading saved cards…</div></div>
+          <button class="btn">Pay €49.00</button>
+          <button class="btn ghost" id="open">Change payment method</button>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section>
+        <span class="tag">Banco · mis tarjetas (ES)</span>
+        <div class="bank">
+          <div class="bar"><b>Banco Ejemplo</b><span>Hola, Iván</span></div>
+          <div class="body">
+            <div class="tiles">
+              <div class="tile a"><small>Tarjeta de débito</small><span class="n">terminada en 4410</span></div>
+              <div class="tile b"><small>Crédito</small><span class="n"><span>····</span> <span>3321</span></span></div>
+            </div>
+            <ul>
+              <li><span>Teléfono móvil ···· 4455</span><span>decoy</span></li>
+              <li><span>Pedido 2071 enviado</span><span>decoy</span></li>
+              <li><span id="manual">Tarjeta empresa 8123</span><span>right-click me</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section>
+        <span class="tag">Receipts · wallet widget</span>
+        <div class="receipts">
+          <h2>Recent receipts</h2>
+          <div class="receipt"><span>Order #2071 · Paid with Mastercard ending in 7788<br /><small>12 Oct 2026</small></span><span class="amt">€18.20</span></div>
+          <div class="receipt"><span aria-label="Visa ending in 6610"><span>Visa</span> <span>6610</span><br /><small>3 Oct 2026</small></span><span class="amt">€72.00</span></div>
+          <div class="receipt"><span>© 2024 Visa Inc. newsletter<br /><small>decoy</small></span><span class="amt">€0.00</span></div>
+          <div id="shadow-host"></div>
+        </div>
+      </section>
+    </div>
+
+    <dialog id="dlg">
+      <div class="saas" style="box-shadow:none;padding:0;background:none">
+        <div class="top"><h2>Choose a card</h2><button class="round" style="border:0" onclick="dlg.close()">✕</button></div>
+        <div class="list" id="late"></div>
+      </div>
+    </dialog>
+
+    <script>
+      const opt = (name, chip, label, num, checked) =>
+        `<label class="pay-option"><input type="radio" name="pm" ${checked ? 'checked' : ''} /><span class="chip ${chip}" role="img" aria-label="${label}">${chip === 'visa' ? 'VISA' : chip === 'amex' ? 'AMEX' : ''}</span><span>${name}<small>${num}</small></span></label>`;
+      setTimeout(() => {
+        document.getElementById('saved').innerHTML =
+          opt('Visa', 'visa', 'Visa', 'Visa ending in 2071 · exp 08/28', true) +
+          opt('Mastercard', 'mc', 'Mastercard', '•••• 7788 · exp 01/27') +
+          opt('American Express', 'amex', 'Amex', '•••• 31005');
+      }, 700);
+
+      const sh = document.getElementById('shadow-host').attachShadow({ mode: 'open' });
+      sh.innerHTML = `<div style="display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:#f5f5ff;font:14px system-ui">
+        <span style="font-weight:600">Wallet</span><span>Visa •••• 1199</span></div>`;
+
+      document.getElementById('open').onclick = () => {
+        const dlg = document.getElementById('dlg');
+        dlg.showModal();
+        setTimeout(() => {
+          document.getElementById('late').innerHTML =
+            '<button class="method"><span class="chip visa" role="img" aria-label="Visa">VISA</span><span><span class="name">Visa Debit</span><span class="num">•••• 2071</span></span></button>' +
+            '<button class="method"><span class="chip mc" role="img" aria-label="Mastercard"></span><span><span class="name">Mastercard</span><span class="num">•••• 7788</span></span></button>';
+        }, 300);
+      };
+    </script>
+    <script src="chrome-shim.js"></script>
+    <script src="../src/patterns.js"></script>
+    <script src="../src/store.js"></script>
+    <script src="../src/content.js"></script>
+  </body>
+</html>
