@@ -393,6 +393,27 @@
         font-weight: 600;
         white-space: nowrap;
       }
+      .rnw-scroll {
+        height: 110px;
+        overflow: hidden auto;
+        transform: translateZ(0);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      .rnw-row {
+        all: unset;
+        box-sizing: border-box;
+        display: block;
+        width: 100%;
+        padding: 12px 14px;
+        cursor: pointer;
+      }
+      .rnw-row + .rnw-row {
+        border-top: 1px solid var(--line);
+      }
+      .rnw-row:hover {
+        background: var(--accent-soft);
+      }
       #shadow-host {
         display: block;
         margin-top: 16px;
@@ -513,6 +534,19 @@
             ><span class="amt">€0.00</span>
           </div>
           <div id="shadow-host"></div>
+        </div>
+      </section>
+
+      <!-- 5: React Native Web style, as on Amazon: the tooltip must escape the transform and clipping -->
+      <section>
+        <span class="tag">Wallet list · transformed scroll</span>
+        <div class="receipts">
+          <h2>Cards and accounts</h2>
+          <div class="rnw-scroll">
+            <button class="rnw-row" type="button">Revolut Mastercard <span>••••</span> <span>9417</span></button>
+            <button class="rnw-row" type="button">Revolut Visa <span>••••</span> <span>1373</span></button>
+            <button class="rnw-row" type="button">Revolut Visa <span>••••</span> <span>9357</span></button>
+          </div>
         </div>
       </section>
     </div>

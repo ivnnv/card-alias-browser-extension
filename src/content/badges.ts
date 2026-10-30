@@ -11,6 +11,8 @@ interface Annotation {
   host: HTMLElement;
   button: HTMLButtonElement;
   tip: HTMLSpanElement;
+  showTip: () => void;
+  hideTip: () => void;
   brand: Brand;
   last4: string;
   /** Added by right-click; lives only as long as its site rule. */
@@ -20,9 +22,10 @@ interface Annotation {
 
 const annotated = new Map<Element, Annotation>();
 const HOST_STYLE: Record<string, string> = {
-  display: 'inline-block',
-  'vertical-align': 'middle',
-  margin: '0 0 0 3px',
+  // A zero-width anchor: the absolutely placed button floats over what follows and never moves layout.
+  display: 'inline',
+  margin: '0',
+  padding: '0',
   'line-height': '0',
   position: 'relative',
 };
@@ -71,9 +74,11 @@ export function annotate(
   const button = document.createElement('button');
   button.type = 'button';
   // Instant replacement for the slow native title tooltip. It lives in the closed
-  // shadow root, so page scripts can't read the alias from it.
+  // shadow root, so page scripts can't read the alias from it, and opens as a
+  // popover in the top layer, so page transforms, overflow and z-index can't clip it.
   const tip = document.createElement('span');
   tip.className = 'tip';
+  tip.popover = 'manual';
   // The button's aria-label already says it; this is the visual copy only.
   tip.setAttribute('aria-hidden', 'true');
   shadow.append(style, button, tip);
@@ -81,14 +86,15 @@ export function annotate(
     const r = button.getBoundingClientRect();
     tip.style.left = `${r.left + r.width / 2}px`;
     tip.style.top = `${r.top - 6}px`;
-    tip.classList.add('show');
+    if (!tip.matches(':popover-open')) tip.showPopover();
   };
-  const hideTip = () => tip.classList.remove('show');
-  button.addEventListener('pointerenter', showTip);
+  const hideTip = () => {
+    if (tip.matches(':popover-open')) tip.hidePopover();
+  };
   button.addEventListener('focus', showTip);
-  for (const type of ['pointerleave', 'blur', 'click']) button.addEventListener(type, hideTip);
+  for (const type of ['blur', 'click']) button.addEventListener(type, hideTip);
 
-  const a: Annotation = { el, host, button, tip, brand, last4, manual, range };
+  const a: Annotation = { el, host, button, tip, showTip, hideTip, brand, last4, manual, range };
   button.addEventListener('click', (e) => {
     e.preventDefault();
     const card = find(state.cards, a.brand, a.last4);
@@ -105,7 +111,56 @@ export function annotate(
   flash(range);
 }
 
+// Highlights get no pointer events, so one listener hit-tests the badges and highlighted text.
+let hovered: Annotation | undefined;
+let pointer: { x: number; y: number; path: EventTarget[] } | undefined;
+
+function ancestorElement(range: Range): Node {
+  const node = range.commonAncestorContainer;
+  return (node.nodeType === Node.TEXT_NODE && node.parentNode) || node;
+}
+
+function hitTest(): void {
+  const p = pointer;
+  pointer = undefined;
+  if (!p) return;
+  let hit: Annotation | undefined;
+  for (const a of annotated.values()) {
+    // The pointer must be on the card's own element, so an overlay covering it never counts.
+    const overText =
+      p.path.includes(ancestorElement(a.range)) &&
+      [...a.range.getClientRects()].some((r) => p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom);
+    if (p.path.includes(a.host) || overText) {
+      hit = a;
+      break;
+    }
+  }
+  if (hit === hovered) return;
+  hovered?.hideTip();
+  hovered = hit;
+  hit?.showTip();
+}
+
+document.addEventListener(
+  'pointermove',
+  (e) => {
+    if (!annotated.size) return;
+    if (!pointer) requestAnimationFrame(hitTest);
+    pointer = { x: e.clientX, y: e.clientY, path: e.composedPath() };
+  },
+  { capture: true, passive: true },
+);
+// The tooltip is placed once, so drop it rather than leave it behind when anything scrolls.
+function dropHover(): void {
+  hovered?.hideTip();
+  hovered = undefined;
+}
+document.documentElement.addEventListener('pointerleave', dropHover);
+document.addEventListener('scroll', dropHover, { capture: true, passive: true });
+
 function unannotate(a: Annotation): void {
+  if (hovered === a) hovered = undefined;
+  a.hideTip();
   a.host.remove();
   unhighlight(a.range);
   annotated.delete(a.el);
