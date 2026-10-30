@@ -1,15 +1,20 @@
 button {
   all: unset;
   box-sizing: border-box;
-  width: 12px;
-  height: 12px;
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2147483647;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font:
-    700 9px/1 -apple-system,
+    700 8px/1 -apple-system,
     system-ui,
     sans-serif;
   color: #fff;
@@ -20,7 +25,7 @@ button {
 button.known {
   background: var(--ca-known);
   font:
-    italic 700 9px/1 Georgia,
+    italic 700 8px/1 Georgia,
     serif;
 }
 
@@ -30,8 +35,12 @@ button:focus-visible {
 }
 
 .tip {
+  /* Popover defaults (inset, margin, border, padding) would center it on screen. */
   position: fixed;
-  z-index: 2147483647;
+  inset: auto;
+  margin: 0;
+  border: 0;
+  overflow: visible;
   transform: translate(-50%, -100%);
   padding: 4px 8px;
   border-radius: 6px;
@@ -44,10 +53,4 @@ button:focus-visible {
   background: rgb(17 17 17 / 0.92);
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 60ms;
-}
-
-.tip.show {
-  opacity: 1;
 }

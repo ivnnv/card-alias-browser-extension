@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { type BrowserContext, chromium, expect, type Frame, type Page, test } from '@playwright/test';
+import { type BrowserContext, chromium, expect, type Frame, type Locator, type Page, test } from '@playwright/test';
 
 const EXTENSION = path.resolve(import.meta.dirname, '../../.output/chrome-mv3');
 const SHOP = 'http://hostile-shop.test/checkout';
@@ -53,6 +53,12 @@ async function editorFrame(page: Page): Promise<Frame> {
   return page.frames().find((f) => f.url().includes('/editor.html'))!;
 }
 
+// The badge host is a zero-width anchor, so aim at the button floating just after it.
+async function badgeSpot(badge: Locator) {
+  const box = await badge.boundingBox();
+  return { force: true, position: { x: 7, y: (box?.height ?? 0) / 2 } };
+}
+
 async function pageSaw(page: Page, secret: string): Promise<string[]> {
   return page.evaluate((s) => {
     const seen = [...(window as unknown as { leaks: string[] }).leaks, document.documentElement.outerHTML];
@@ -67,7 +73,7 @@ test('a hostile page cannot read an alias while it is typed, saved or shown', as
   await expect(badge).toHaveCount(1);
 
   // Type the alias key by key, like a person would.
-  await badge.click();
+  await badge.click(await badgeSpot(badge));
   const add = await editorFrame(page);
   await add.getByLabel('Alias').pressSequentially(ALIAS);
   await add.getByLabel('Alias').press('Enter');
@@ -79,12 +85,12 @@ test('a hostile page cannot read an alias while it is typed, saved or shown', as
 
   // Open the saved alias again, which renders it on screen.
   await expect.poll(() => page.frames().some((f) => f.url().includes('/editor.html'))).toBe(false);
-  await badge.click();
+  await badge.click(await badgeSpot(badge));
   const info = await editorFrame(page);
   await expect(info.getByLabel('Alias')).toHaveValue(ALIAS);
   await info.getByLabel('Alias').press('Escape');
   // Hovering shows the alias in the badge tooltip, which must stay out of the page's reach too.
-  await badge.hover();
+  await badge.hover(await badgeSpot(badge));
 
   expect(await pageSaw(page, ALIAS)).toEqual([]);
   // The editor talks to the content script over extension messaging, never through the page.
@@ -140,7 +146,7 @@ test('a card inside a sandboxed frame opens the editor as a popup window', async
   await expect(sandboxed.locator('card-alias-badge')).toHaveCount(1);
 
   const popupPromise = context.waitForEvent('page', (p) => p.url().includes('/editor.html'));
-  await sandboxed.locator('card-alias-badge').click();
+  await sandboxed.locator('card-alias-badge').click(await badgeSpot(sandboxed.locator('card-alias-badge')));
   const editor = await popupPromise;
   await editor.getByLabel('Alias').pressSequentially('Sandboxed card');
   await editor.getByLabel('Alias').press('Enter');
