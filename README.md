@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="#install"><img alt="Chrome Web Store: coming soon" src="https://img.shields.io/badge/Chrome%20Web%20Store-coming%20soon-lightgrey?logo=googlechrome&logoColor=white" /></a>
+  <a href="https://chromewebstore.google.com/detail/bilcfekgjgldldooephnfnjnggofdgeg"><img alt="Chrome Web Store" src="https://img.shields.io/chrome-web-store/v/bilcfekgjgldldooephnfnjnggofdgeg?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white" /></a>
   <a href="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/ivnnv/card-alias-browser-extension"><img alt="OpenSSF Scorecard" src="https://api.securityscorecards.dev/projects/github.com/ivnnv/card-alias-browser-extension/badge" /></a>
   <a href="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/ivnnv/card-alias-browser-extension/actions/workflows/codeql.yml/badge.svg" /></a>
@@ -76,7 +76,7 @@ The [OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/ivnnv/card-
 
 ## Install
 
-**Chrome Web Store:** coming soon.
+**Chrome Web Store:** [Card Alias](https://chromewebstore.google.com/detail/bilcfekgjgldldooephnfnjnggofdgeg).
 
 **From source:**
 
